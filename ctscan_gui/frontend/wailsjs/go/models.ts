@@ -12,6 +12,26 @@ export namespace main {
 	        this.line = source["line"];
 	    }
 	}
+	export class NetworkConn {
+	    proto: string;
+	    local_addr: string;
+	    remote_addr: string;
+	    status: string;
+	    pid: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new NetworkConn(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.proto = source["proto"];
+	        this.local_addr = source["local_addr"];
+	        this.remote_addr = source["remote_addr"];
+	        this.status = source["status"];
+	        this.pid = source["pid"];
+	    }
+	}
 	export class NetworkInfo {
 	    hostname: string;
 	    ips: string[];

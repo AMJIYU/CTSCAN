@@ -10,6 +10,10 @@ export function GetCronTasks() {
   return window['go']['main']['App']['GetCronTasks']();
 }
 
+export function GetNetworkConnections() {
+  return window['go']['main']['App']['GetNetworkConnections']();
+}
+
 export function GetNetworkInfo() {
   return window['go']['main']['App']['GetNetworkInfo']();
 }

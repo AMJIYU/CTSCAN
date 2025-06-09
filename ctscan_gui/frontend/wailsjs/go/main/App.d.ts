@@ -6,6 +6,8 @@ export function GetAllProcesses():Promise<Array<main.ProcInfo>>;
 
 export function GetCronTasks():Promise<Array<main.CronTask>>;
 
+export function GetNetworkConnections():Promise<Array<main.NetworkConn>>;
+
 export function GetNetworkInfo():Promise<main.NetworkInfo>;
 
 export function GetPatchInfo():Promise<Array<main.PatchInfo>>;

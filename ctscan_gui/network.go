@@ -3,6 +3,11 @@ package main
 import (
 	"net"
 	"os"
+
+	"fmt"
+	"strconv"
+
+	gopsnet "github.com/shirou/gopsutil/v4/net"
 )
 
 type NetworkInfo struct {
@@ -10,6 +15,14 @@ type NetworkInfo struct {
 	IPs        []string `json:"ips"`
 	MACs       []string `json:"macs"`
 	Interfaces []string `json:"interfaces"`
+}
+
+type NetworkConn struct {
+	Proto      string `json:"proto"`
+	LocalAddr  string `json:"local_addr"`
+	RemoteAddr string `json:"remote_addr"`
+	Status     string `json:"status"`
+	Pid        int32  `json:"pid"`
 }
 
 func (a *App) GetNetworkInfo() NetworkInfo {
@@ -42,4 +55,25 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 		MACs:       macs,
 		Interfaces: ifaces,
 	}
+}
+
+func (a *App) GetNetworkConnections() []NetworkConn {
+	conns, err := gopsnet.Connections("all")
+	if err != nil {
+		return nil
+	}
+	var result []NetworkConn
+	for _, c := range conns {
+		proto := fmt.Sprintf("%d", c.Type)
+		local := c.Laddr.IP + ":" + strconv.Itoa(int(c.Laddr.Port))
+		remote := c.Raddr.IP + ":" + strconv.Itoa(int(c.Raddr.Port))
+		result = append(result, NetworkConn{
+			Proto:      proto,
+			LocalAddr:  local,
+			RemoteAddr: remote,
+			Status:     c.Status,
+			Pid:        c.Pid,
+		})
+	}
+	return result
 }

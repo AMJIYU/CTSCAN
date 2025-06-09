@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetNetworkInfo } from '../../wailsjs/go/main/App'
+import { GetNetworkInfo, GetNetworkConnections } from '../../wailsjs/go/main/App'
 
 interface NetworkInfo {
   hostname: string;
@@ -16,9 +16,14 @@ const networkInfo = ref<NetworkInfo>({
   interfaces: []
 })
 
+const connections = ref<{ proto: string; local_addr: string; remote_addr: string; status: string; pid: number }[]>([])
+
 onMounted(() => {
   GetNetworkInfo().then(info => {
     networkInfo.value = info
+  })
+  GetNetworkConnections().then(list => {
+    connections.value = list
   })
 })
 </script>
@@ -33,4 +38,12 @@ onMounted(() => {
       <div v-for="mac in networkInfo.macs" :key="mac">{{ mac }}</div>
     </el-descriptions-item>
   </el-descriptions>
+  <h4 style="margin-top:24px;">网络连接详情</h4>
+  <el-table :data="connections" style="width: 100%">
+    <el-table-column prop="proto" label="协议" />
+    <el-table-column prop="local_addr" label="本地地址" />
+    <el-table-column prop="remote_addr" label="远程地址" />
+    <el-table-column prop="status" label="状态" />
+    <el-table-column prop="pid" label="PID" />
+  </el-table>
 </template> 
