@@ -140,6 +140,26 @@ export namespace main {
 	        this.go_version = source["go_version"];
 	    }
 	}
+	export class SystemUser {
+	    username: string;
+	    uid: string;
+	    gid: string;
+	    home_dir: string;
+	    name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SystemUser(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.username = source["username"];
+	        this.uid = source["uid"];
+	        this.gid = source["gid"];
+	        this.home_dir = source["home_dir"];
+	        this.name = source["name"];
+	    }
+	}
 	export class UserInfo {
 	    username: string;
 	    uid: string;

@@ -6,6 +6,10 @@ export function GetAllProcesses() {
   return window['go']['main']['App']['GetAllProcesses']();
 }
 
+export function GetAllUsers() {
+  return window['go']['main']['App']['GetAllUsers']();
+}
+
 export function GetCronTasks() {
   return window['go']['main']['App']['GetCronTasks']();
 }

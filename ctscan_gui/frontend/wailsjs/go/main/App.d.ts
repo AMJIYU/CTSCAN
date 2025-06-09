@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function GetAllProcesses():Promise<Array<main.ProcInfo>>;
 
+export function GetAllUsers():Promise<Array<main.SystemUser>>;
+
 export function GetCronTasks():Promise<Array<main.CronTask>>;
 
 export function GetNetworkConnections():Promise<Array<main.NetworkConn>>;
