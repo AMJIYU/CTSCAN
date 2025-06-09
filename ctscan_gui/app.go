@@ -1,6 +1,8 @@
 package main
 
-import "context"
+import (
+	"context"
+)
 
 // App struct
 type App struct {
@@ -19,21 +21,21 @@ func (a *App) startup(ctx context.Context) {
 
 // Stats 定义了概览统计的数据结构
 type Stats struct {
-	Total    int `json:"total"`
-	Network  int `json:"network"`
-	Startup  int `json:"startup"`
-	Tasks    int `json:"tasks"`
-	Process  int `json:"process"`
+	Total   int `json:"total"`
+	Network int `json:"network"`
+	Startup int `json:"startup"`
+	Tasks   int `json:"tasks"`
+	Process int `json:"process"`
 }
 
 // GetStats 返回初始的零值统计信息
 // 这个方法被绑定了，所以可以从前端JS调用
 func (a *App) GetStats() Stats {
 	return Stats{
-		Total:    0,
-		Network:  0,
-		Startup:  0,
-		Tasks:    0,
-		Process:  0,
+		Total:   10,
+		Network: 0,
+		Startup: 0,
+		Tasks:   0,
+		Process: 0,
 	}
 }

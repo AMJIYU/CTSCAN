@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { GetStats } from '../../wailsjs/go/main/App';
+import { GetStats, GetSystemInfo, GetUserInfo, GetNetworkInfo, GetStartupItems, GetCronTasks, GetAllProcesses } from '../../wailsjs/go/main/App';
+import SystemInfoPanel from './SystemInfoPanel.vue'
+import UserInfoPanel from './UserInfoPanel.vue'
+import NetworkInfoPanel from './NetworkInfoPanel.vue'
+import StartupPanel from './StartupPanel.vue'
+import CronTaskPanel from './CronTaskPanel.vue'
+import ProcessPanel from './ProcessPanel.vue'
 
 // 定义与后端匹配的统计信息结构
 interface Stats {
@@ -13,12 +19,43 @@ interface Stats {
 
 // 统计数据的响应式引用
 const stats = ref<Stats>({
-  total: 10,
-  network: 90,
+  total: 0,
+  network: 0,
   startup: 0,
   tasks: 0,
   process: 0,
 });
+
+// 系统信息
+const sysInfo = ref({
+  hostname: '',
+  os: '',
+  arch: '',
+  cpu_cores: 0,
+  go_version: ''
+})
+
+const userInfo = ref({
+  username: '',
+  uid: '',
+  gid: '',
+  home_dir: '',
+  name: ''
+})
+
+interface NetworkInfo {
+  hostname: string;
+  ips: string[];
+  macs: string[];
+  interfaces: string[];
+}
+
+const networkInfo = ref<NetworkInfo>({
+  hostname: '',
+  ips: [],
+  macs: [],
+  interfaces: []
+})
 
 // 统计卡片的配置
 const statItems = ref([
@@ -29,10 +66,32 @@ const statItems = ref([
     { key: 'process', label: '进程', color: '#ffeae9', iconColor: '#f56c6c' },
 ]);
 
+const startupItems = ref<{ name: string; path: string }[]>([])
+const cronTasks = ref<{ line: string }[]>([])
+const processes = ref<{ pid: number; name: string; cmdline: string; user: string; exe: string }[]>([])
+
 // 组件挂载后从 Go 后端获取数据
 onMounted(() => {
   GetStats().then(result => {
     stats.value = result;
+  });
+  GetSystemInfo().then(info => {
+    sysInfo.value = info;
+  });
+  GetUserInfo().then(info => {
+    userInfo.value = info;
+  });
+  GetNetworkInfo().then(info => {
+    networkInfo.value = info;
+  });
+  GetStartupItems().then(list => {
+    startupItems.value = list;
+  });
+  GetCronTasks().then(list => {
+    cronTasks.value = list;
+  });
+  GetAllProcesses().then(list => {
+    processes.value = list;
   });
 });
 
@@ -84,17 +143,29 @@ onMounted(() => {
     <!-- 详情标签页 -->
     <div class="details-section">
        <el-tabs type="border-card" shadow="never" class="detail-tabs">
-        <el-tab-pane label="系统基本信息"></el-tab-pane>
+        <el-tab-pane label="系统基本信息">
+          <SystemInfoPanel />
+        </el-tab-pane>
         <el-tab-pane label="系统补丁信息"></el-tab-pane>
-        <el-tab-pane label="用户"></el-tab-pane>
-        <el-tab-pane label="网络信息"></el-tab-pane>
-        <el-tab-pane label="开机启动项"></el-tab-pane>
-        <el-tab-pane label="任务计划"></el-tab-pane>
-        <el-tab-pane label="进程排查"></el-tab-pane>
+        <el-tab-pane label="用户">
+          <UserInfoPanel />
+        </el-tab-pane>
+        <el-tab-pane label="网络信息">
+          <NetworkInfoPanel />
+        </el-tab-pane>
+        <el-tab-pane label="开机启动项">
+          <StartupPanel />
+        </el-tab-pane>
+        <el-tab-pane label="任务计划">
+          <CronTaskPanel />
+        </el-tab-pane>
+        <el-tab-pane label="进程排查">
+          <ProcessPanel />
+        </el-tab-pane>
         <el-tab-pane label="痕迹&日志"></el-tab-pane>
-        <div class="tab-placeholder">
+        <!-- <div class="tab-placeholder">
            请执行扫描或上传文件, 然后选择标签页查看数据.
-        </div>
+        </div> -->
       </el-tabs>
     </div>
 
