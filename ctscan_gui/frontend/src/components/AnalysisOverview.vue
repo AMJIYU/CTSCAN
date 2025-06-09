@@ -59,7 +59,7 @@ const networkInfo = ref<NetworkInfo>({
 
 // 统计卡片的配置
 const statItems = ref([
-    { key: 'total', label: '总常数', color: '#eaf2ff', iconColor: '#409eff' },
+    { key: 'total', label: '总异常数', color: '#eaf2ff', iconColor: '#409eff' },
     { key: 'network', label: '网络', color: '#eef8e9', iconColor: '#67c23a' },
     { key: 'startup', label: '启动项', color: '#fef8e7', iconColor: '#e6a23c' },
     { key: 'tasks', label: '任务', color: '#f9eefe', iconColor: '#a262d5' },
