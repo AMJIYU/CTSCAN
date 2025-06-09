@@ -7,6 +7,7 @@ import NetworkInfoPanel from './NetworkInfoPanel.vue'
 import StartupPanel from './StartupPanel.vue'
 import CronTaskPanel from './CronTaskPanel.vue'
 import ProcessPanel from './ProcessPanel.vue'
+import PatchPanel from './PatchPanel.vue'
 
 // 定义与后端匹配的统计信息结构
 interface Stats {
@@ -146,7 +147,9 @@ onMounted(() => {
         <el-tab-pane label="系统基本信息">
           <SystemInfoPanel />
         </el-tab-pane>
-        <el-tab-pane label="系统补丁信息"></el-tab-pane>
+        <el-tab-pane label="系统补丁信息">
+          <PatchPanel />
+        </el-tab-pane>
         <el-tab-pane label="用户">
           <UserInfoPanel />
         </el-tab-pane>

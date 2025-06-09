@@ -30,6 +30,22 @@ export namespace main {
 	        this.interfaces = source["interfaces"];
 	    }
 	}
+	export class PatchInfo {
+	    name: string;
+	    date: string;
+	    status: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PatchInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.date = source["date"];
+	        this.status = source["status"];
+	    }
+	}
 	export class ProcInfo {
 	    pid: number;
 	    name: string;

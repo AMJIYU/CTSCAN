@@ -14,6 +14,10 @@ export function GetNetworkInfo() {
   return window['go']['main']['App']['GetNetworkInfo']();
 }
 
+export function GetPatchInfo() {
+  return window['go']['main']['App']['GetPatchInfo']();
+}
+
 export function GetStartupItems() {
   return window['go']['main']['App']['GetStartupItems']();
 }

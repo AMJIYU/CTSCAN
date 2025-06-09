@@ -8,6 +8,8 @@ export function GetCronTasks():Promise<Array<main.CronTask>>;
 
 export function GetNetworkInfo():Promise<main.NetworkInfo>;
 
+export function GetPatchInfo():Promise<Array<main.PatchInfo>>;
+
 export function GetStartupItems():Promise<Array<main.StartupItem>>;
 
 export function GetStats():Promise<main.Stats>;
