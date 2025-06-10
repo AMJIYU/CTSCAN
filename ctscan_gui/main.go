@@ -3,6 +3,8 @@ package main
 import (
 	"embed"
 
+	"ctscan_gui/pkg"
+
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -13,7 +15,7 @@ var assets embed.FS
 
 func main() {
 	// 创建一个 App 实例
-	app := NewApp()
+	app := pkg.NewApp()
 
 	// 使用配置创建应用
 	err := wails.Run(&options.App{
@@ -26,7 +28,7 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 1},
-		OnStartup:        app.startup,
+		OnStartup:        app.Startup,
 		Bind: []interface{}{
 			app,
 		},

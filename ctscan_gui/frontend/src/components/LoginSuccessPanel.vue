@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetLoginSuccessRecords } from '../../wailsjs/go/main/App'
+import { GetLoginSuccessRecords } from '../../wailsjs/go/pkg/App'
 
 const records = ref<any[]>([])
 const loginSuccessLogs = ref<any[]>([])

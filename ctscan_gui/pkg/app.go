@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -15,7 +15,7 @@ func NewApp() *App {
 }
 
 // startup 在应用启动时被调用。保存 context 以便我们调用运行时方法
-func (a *App) startup(ctx context.Context) {
+func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 }
 

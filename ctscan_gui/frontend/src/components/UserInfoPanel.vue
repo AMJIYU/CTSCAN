@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetUserInfo, GetAllUsers } from '../../wailsjs/go/main/App'
+import { GetUserInfo, GetAllUsers } from '../../wailsjs/go/pkg/App'
 
 const userInfo = ref({
   username: '',

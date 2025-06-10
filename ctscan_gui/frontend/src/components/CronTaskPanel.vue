@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetCronTasks } from '../../wailsjs/go/main/App'
+import { GetCronTasks } from '../../wailsjs/go/pkg/App'
 
 const cronTasks = ref<{ line: string }[]>([])
 

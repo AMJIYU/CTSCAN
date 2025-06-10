@@ -9,33 +9,6 @@ import ProcessPanel from './ProcessPanel.vue'
 import PatchPanel from './PatchPanel.vue'
 import LoginSuccessPanel from './LoginSuccessPanel.vue'
 
-// // 定义与后端匹配的统计信息结构
-// interface Stats {
-//   total: number;
-//   network: number;
-//   startup: number;
-//   tasks: number;
-//   process: number;
-// }
-
-// // 统计数据的响应式引用
-// const stats = ref<Stats>({
-//   total: 0,
-//   network: 0,
-//   startup: 0,
-//   tasks: 0,
-//   process: 0,
-// });
-
-// // 统计卡片的配置
-// const statItems = ref([
-//     { key: 'total', label: '总异常数', color: '#eaf2ff', iconColor: '#409eff' },
-//     { key: 'network', label: '网络', color: '#eef8e9', iconColor: '#67c23a' },
-//     { key: 'startup', label: '启动项', color: '#fef8e7', iconColor: '#e6a23c' },
-//     { key: 'tasks', label: '任务', color: '#f9eefe', iconColor: '#a262d5' },
-//     { key: 'process', label: '进程', color: '#ffeae9', iconColor: '#f56c6c' },
-// ]);
-
 // 使用ref引用每个选项卡组件
 const systemInfoRef = ref();
 const userInfoRef = ref();
@@ -92,18 +65,7 @@ const refreshInfo = () => {
       </el-col>
     </el-row>
 
-    <!-- 统计部分 -->
-    <!-- <div class="stats-section">
-      <h3>概览统计</h3>
-      <el-row :gutter="24">
-        <el-col :span="24 / statItems.length" v-for="item in statItems" :key="item.key">
-           <el-card shadow="never" class="stat-card" :style="{ backgroundColor: item.color }">
-              <div class="stat-value" :style="{ color: item.iconColor }">{{ stats[item.key as keyof Stats] }}</div>
-              <div class="stat-label">{{ item.label }}</div>
-           </el-card>
-        </el-col>
-      </el-row>
-    </div> -->
+ 
 
     <!-- 详情标签页 -->
     <div class="details-section">
@@ -129,9 +91,7 @@ const refreshInfo = () => {
         <el-tab-pane label="进程排查">
           <ProcessPanel ref="processRef" />
         </el-tab-pane>
-        <el-tab-pane label="日志分析">
-          <div>这里显示日志分析内容</div>
-        </el-tab-pane>
+       
         <el-tab-pane label="登入成功">
           <LoginSuccessPanel ref="loginSuccessRef" />
         </el-tab-pane>

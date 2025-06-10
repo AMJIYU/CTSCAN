@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetAllProcesses } from '../../wailsjs/go/main/App'
+import { GetAllProcesses } from '../../wailsjs/go/pkg/App'
 
 const processes = ref<any[]>([])
 

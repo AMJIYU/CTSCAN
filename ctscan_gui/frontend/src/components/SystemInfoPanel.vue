@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetSystemInfo } from '../../wailsjs/go/main/App'
+import { GetSystemInfo } from '../../wailsjs/go/pkg/App'
 
 const sysInfo = ref({
   hostname: '',

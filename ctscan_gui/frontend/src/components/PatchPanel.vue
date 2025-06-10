@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetPatchInfo } from '../../wailsjs/go/main/App'
+import { GetPatchInfo } from '../../wailsjs/go/pkg/App'
 
 const patchInfo = ref<{ name: string; date: string; status: string }[]>([])
 

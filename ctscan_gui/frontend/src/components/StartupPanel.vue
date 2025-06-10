@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetStartupItems } from '../../wailsjs/go/main/App'
+import { GetStartupItems } from '../../wailsjs/go/pkg/App'
 
 const startupItems = ref<{ name: string; path: string }[]>([])
 

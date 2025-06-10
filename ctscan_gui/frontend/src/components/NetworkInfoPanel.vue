@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetNetworkInfo, GetNetworkConnections } from '../../wailsjs/go/main/App'
+import { GetNetworkInfo, GetNetworkConnections } from '../../wailsjs/go/pkg/App'
 
 interface NetworkInfo {
   hostname: string;
