@@ -14,6 +14,10 @@ export function GetCronTasks() {
   return window['go']['main']['App']['GetCronTasks']();
 }
 
+export function GetLoginSuccessRecords() {
+  return window['go']['main']['App']['GetLoginSuccessRecords']();
+}
+
 export function GetNetworkConnections() {
   return window['go']['main']['App']['GetNetworkConnections']();
 }

@@ -57,6 +57,17 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 	}
 }
 
+func protoName(t uint32) string {
+	switch t {
+	case 1:
+		return "tcp"
+	case 2:
+		return "udp"
+	default:
+		return fmt.Sprintf("%d", t)
+	}
+}
+
 func (a *App) GetNetworkConnections() []NetworkConn {
 	conns, err := gopsnet.Connections("all")
 	if err != nil {
@@ -64,7 +75,7 @@ func (a *App) GetNetworkConnections() []NetworkConn {
 	}
 	var result []NetworkConn
 	for _, c := range conns {
-		proto := fmt.Sprintf("%d", c.Type)
+		proto := protoName(c.Type)
 		local := c.Laddr.IP + ":" + strconv.Itoa(int(c.Laddr.Port))
 		remote := c.Raddr.IP + ":" + strconv.Itoa(int(c.Raddr.Port))
 		result = append(result, NetworkConn{

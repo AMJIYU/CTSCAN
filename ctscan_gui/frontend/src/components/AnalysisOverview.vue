@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { GetStats, GetSystemInfo, GetUserInfo, GetNetworkInfo, GetStartupItems, GetCronTasks, GetAllProcesses } from '../../wailsjs/go/main/App';
+import { ref } from 'vue';
 import SystemInfoPanel from './SystemInfoPanel.vue'
 import UserInfoPanel from './UserInfoPanel.vue'
 import NetworkInfoPanel from './NetworkInfoPanel.vue'
@@ -8,6 +7,7 @@ import StartupPanel from './StartupPanel.vue'
 import CronTaskPanel from './CronTaskPanel.vue'
 import ProcessPanel from './ProcessPanel.vue'
 import PatchPanel from './PatchPanel.vue'
+import LoginSuccessPanel from './LoginSuccessPanel.vue'
 
 // 定义与后端匹配的统计信息结构
 interface Stats {
@@ -27,37 +27,6 @@ const stats = ref<Stats>({
   process: 0,
 });
 
-// 系统信息
-const sysInfo = ref({
-  hostname: '',
-  os: '',
-  arch: '',
-  cpu_cores: 0,
-  go_version: ''
-})
-
-const userInfo = ref({
-  username: '',
-  uid: '',
-  gid: '',
-  home_dir: '',
-  name: ''
-})
-
-interface NetworkInfo {
-  hostname: string;
-  ips: string[];
-  macs: string[];
-  interfaces: string[];
-}
-
-const networkInfo = ref<NetworkInfo>({
-  hostname: '',
-  ips: [],
-  macs: [],
-  interfaces: []
-})
-
 // 统计卡片的配置
 const statItems = ref([
     { key: 'total', label: '总异常数', color: '#eaf2ff', iconColor: '#409eff' },
@@ -66,35 +35,6 @@ const statItems = ref([
     { key: 'tasks', label: '任务', color: '#f9eefe', iconColor: '#a262d5' },
     { key: 'process', label: '进程', color: '#ffeae9', iconColor: '#f56c6c' },
 ]);
-
-const startupItems = ref<{ name: string; path: string }[]>([])
-const cronTasks = ref<{ line: string }[]>([])
-const processes = ref<{ pid: number; name: string; cmdline: string; user: string; exe: string }[]>([])
-
-// 组件挂载后从 Go 后端获取数据
-onMounted(() => {
-  GetStats().then(result => {
-    stats.value = result;
-  });
-  GetSystemInfo().then(info => {
-    sysInfo.value = info;
-  });
-  GetUserInfo().then(info => {
-    userInfo.value = info;
-  });
-  GetNetworkInfo().then(info => {
-    networkInfo.value = info;
-  });
-  GetStartupItems().then(list => {
-    startupItems.value = list;
-  });
-  GetCronTasks().then(list => {
-    cronTasks.value = list;
-  });
-  GetAllProcesses().then(list => {
-    processes.value = list;
-  });
-});
 
 </script>
 
@@ -165,7 +105,18 @@ onMounted(() => {
         <el-tab-pane label="进程排查">
           <ProcessPanel />
         </el-tab-pane>
-        <el-tab-pane label="痕迹&日志"></el-tab-pane>
+        <el-tab-pane label="日志分析">
+          <div>这里显示日志分析内容</div>
+        </el-tab-pane>
+        <el-tab-pane label="登入成功">
+          <LoginSuccessPanel />
+        </el-tab-pane>
+        <el-tab-pane label="登入失败">
+          <div>这里显示登入失败日志</div>
+        </el-tab-pane>
+        <el-tab-pane label="RDP登入">
+          <div>这里显示RDP登入日志</div>
+        </el-tab-pane>
         <!-- <div class="tab-placeholder">
            请执行扫描或上传文件, 然后选择标签页查看数据.
         </div> -->
@@ -184,6 +135,15 @@ onMounted(() => {
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.stats-section {
+  flex: 0 0 120px;
+  margin-bottom: 0;
+}
+
+.details-section {
+  flex: 1 1 auto;
 }
 
 .action-card {
@@ -255,38 +215,43 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.detail-tabs {
-  border: 1px solid #ebeef5;
-  box-shadow: none;
-  border-radius: 8px;
-  overflow: hidden;
+/* 主选项卡和子选项卡统一美化 */
+.detail-tabs,
+.log-tabs {
+  border: none;
+  background: #f8fafd;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px 0 rgba(64,158,255,0.08);
+  padding: 12px 0 0 0;
 }
-
-.tab-placeholder {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 240px;
-  color: #909399;
-  font-size: 14px;
-  background-color: #fafafa;
-  border-radius: 0 0 8px 8px;
+:deep(.detail-tabs .el-tabs__header),
+:deep(.log-tabs .el-tabs__header) {
+  background: transparent;
+  border-bottom: none;
+  margin-bottom: 8px;
 }
-
-:deep(.el-tabs__header) {
-  margin: 0;
-  background-color: #fafafa;
-  border-bottom: 1px solid #ebeef5;
+:deep(.detail-tabs .el-tabs__item),
+:deep(.log-tabs .el-tabs__item) {
+  border-radius: 10px 10px 0 0;
+  margin-right: 8px;
+  padding: 10px 28px;
+  font-size: 16px;
+  color: #409eff;
+  background: #eaf2ff;
+  transition: background 0.2s, color 0.2s;
 }
-
-:deep(.el-tabs__item) {
-  height: 48px;
-  line-height: 48px;
-  font-size: 14px;
-  font-weight: 500;
+:deep(.detail-tabs .el-tabs__item.is-active),
+:deep(.log-tabs .el-tabs__item.is-active) {
+  background: #409eff;
+  color: #fff;
+  font-weight: bold;
 }
-
-:deep(.el-tabs__item.is-active) {
-  font-weight: 600;
+:deep(.detail-tabs .el-tabs__content),
+:deep(.log-tabs .el-tabs__content) {
+  background: #fff;
+  border-radius: 0 0 10px 10px;
+  padding: 22px 18px;
+  min-height: 120px;
+  box-shadow: 0 1px 4px rgba(64,158,255,0.04);
 }
 </style>

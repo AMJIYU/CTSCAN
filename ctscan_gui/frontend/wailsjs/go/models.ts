@@ -12,6 +12,34 @@ export namespace main {
 	        this.line = source["line"];
 	    }
 	}
+	export class LoginSuccess {
+	    time: string;
+	    event_id: string;
+	    login_type: string;
+	    source_ip: string;
+	    username: string;
+	    workstation: string;
+	    subject_user: string;
+	    subject_domain: string;
+	    process: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LoginSuccess(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.time = source["time"];
+	        this.event_id = source["event_id"];
+	        this.login_type = source["login_type"];
+	        this.source_ip = source["source_ip"];
+	        this.username = source["username"];
+	        this.workstation = source["workstation"];
+	        this.subject_user = source["subject_user"];
+	        this.subject_domain = source["subject_domain"];
+	        this.process = source["process"];
+	    }
+	}
 	export class NetworkConn {
 	    proto: string;
 	    local_addr: string;
@@ -69,9 +97,14 @@ export namespace main {
 	export class ProcInfo {
 	    pid: number;
 	    name: string;
-	    cmdline: string;
-	    user: string;
+	    ppid: number;
+	    parent_name: string;
+	    create_time: number;
 	    exe: string;
+	    file_ctime: number;
+	    file_mtime: number;
+	    md5: string;
+	    signature: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ProcInfo(source);
@@ -81,9 +114,14 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.pid = source["pid"];
 	        this.name = source["name"];
-	        this.cmdline = source["cmdline"];
-	        this.user = source["user"];
+	        this.ppid = source["ppid"];
+	        this.parent_name = source["parent_name"];
+	        this.create_time = source["create_time"];
 	        this.exe = source["exe"];
+	        this.file_ctime = source["file_ctime"];
+	        this.file_mtime = source["file_mtime"];
+	        this.md5 = source["md5"];
+	        this.signature = source["signature"];
 	    }
 	}
 	export class StartupItem {

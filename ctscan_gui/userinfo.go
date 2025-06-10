@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"os"
 	"os/user"
 	"strings"
 )
@@ -37,7 +37,7 @@ func (a *App) GetUserInfo() UserInfo {
 }
 
 func (a *App) GetAllUsers() []SystemUser {
-	data, err := ioutil.ReadFile("/etc/passwd")
+	data, err := os.ReadFile("/etc/passwd")
 	if err != nil {
 		return nil
 	}
