@@ -4,11 +4,17 @@ import { GetStartupItems } from '../../wailsjs/go/main/App'
 
 const startupItems = ref<{ name: string; path: string }[]>([])
 
-onMounted(() => {
+const refresh = () => {
   GetStartupItems().then(list => {
     startupItems.value = list
   })
+}
+
+onMounted(() => {
+  refresh()
 })
+
+defineExpose({ refresh })
 </script>
 <template>
   <el-table :data="startupItems" style="width: 100%">

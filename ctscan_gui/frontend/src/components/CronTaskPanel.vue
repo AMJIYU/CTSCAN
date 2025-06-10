@@ -4,11 +4,17 @@ import { GetCronTasks } from '../../wailsjs/go/main/App'
 
 const cronTasks = ref<{ line: string }[]>([])
 
-onMounted(() => {
+const refresh = () => {
   GetCronTasks().then(list => {
     cronTasks.value = list
   })
+}
+
+onMounted(() => {
+  refresh()
 })
+
+defineExpose({ refresh })
 </script>
 <template>
   <el-table :data="cronTasks" style="width: 100%">

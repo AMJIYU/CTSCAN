@@ -18,14 +18,22 @@ const networkInfo = ref<NetworkInfo>({
 
 const connections = ref<{ proto: string; local_addr: string; remote_addr: string; status: string; pid: number }[]>([])
 
-onMounted(() => {
+// 添加 refresh 方法，用于重新获取网络信息
+const refresh = () => {
   GetNetworkInfo().then(info => {
     networkInfo.value = info
   })
+}
+
+onMounted(() => {
+  refresh()
   GetNetworkConnections().then(list => {
     connections.value = list
   })
 })
+
+// 暴露 refresh 方法，供父组件调用
+defineExpose({ refresh })
 </script>
 <template>
   <el-descriptions title="网络信息" :column="1" border>

@@ -9,32 +9,56 @@ import ProcessPanel from './ProcessPanel.vue'
 import PatchPanel from './PatchPanel.vue'
 import LoginSuccessPanel from './LoginSuccessPanel.vue'
 
-// 定义与后端匹配的统计信息结构
-interface Stats {
-  total: number;
-  network: number;
-  startup: number;
-  tasks: number;
-  process: number;
+// // 定义与后端匹配的统计信息结构
+// interface Stats {
+//   total: number;
+//   network: number;
+//   startup: number;
+//   tasks: number;
+//   process: number;
+// }
+
+// // 统计数据的响应式引用
+// const stats = ref<Stats>({
+//   total: 0,
+//   network: 0,
+//   startup: 0,
+//   tasks: 0,
+//   process: 0,
+// });
+
+// // 统计卡片的配置
+// const statItems = ref([
+//     { key: 'total', label: '总异常数', color: '#eaf2ff', iconColor: '#409eff' },
+//     { key: 'network', label: '网络', color: '#eef8e9', iconColor: '#67c23a' },
+//     { key: 'startup', label: '启动项', color: '#fef8e7', iconColor: '#e6a23c' },
+//     { key: 'tasks', label: '任务', color: '#f9eefe', iconColor: '#a262d5' },
+//     { key: 'process', label: '进程', color: '#ffeae9', iconColor: '#f56c6c' },
+// ]);
+
+// 使用ref引用每个选项卡组件
+const systemInfoRef = ref();
+const userInfoRef = ref();
+const networkInfoRef = ref();
+const startupRef = ref();
+const cronTaskRef = ref();
+const processRef = ref();
+const patchRef = ref();
+const loginSuccessRef = ref();
+
+// 添加重新获取信息的方法
+const refreshInfo = () => {
+  // 调用所有选项卡组件的刷新方法，重新获取当前所有选项卡的信息
+  systemInfoRef.value?.refresh();
+  userInfoRef.value?.refresh();
+  networkInfoRef.value?.refresh();
+  startupRef.value?.refresh();
+  cronTaskRef.value?.refresh();
+  processRef.value?.refresh();
+  patchRef.value?.refresh();
+  loginSuccessRef.value?.refresh();
+  console.log('重新获取所有选项卡信息');
 }
-
-// 统计数据的响应式引用
-const stats = ref<Stats>({
-  total: 0,
-  network: 0,
-  startup: 0,
-  tasks: 0,
-  process: 0,
-});
-
-// 统计卡片的配置
-const statItems = ref([
-    { key: 'total', label: '总异常数', color: '#eaf2ff', iconColor: '#409eff' },
-    { key: 'network', label: '网络', color: '#eef8e9', iconColor: '#67c23a' },
-    { key: 'startup', label: '启动项', color: '#fef8e7', iconColor: '#e6a23c' },
-    { key: 'tasks', label: '任务', color: '#f9eefe', iconColor: '#a262d5' },
-    { key: 'process', label: '进程', color: '#ffeae9', iconColor: '#f56c6c' },
-]);
 
 </script>
 
@@ -50,7 +74,7 @@ const statItems = ref([
               <h3>本机扫描分析</h3>
               <p>准备扫描</p>
             </div>
-            <el-button>点击重新开始</el-button>
+            <el-button @click="refreshInfo">点击重新开始</el-button>
           </div>
         </el-card>
       </el-col>
@@ -69,7 +93,7 @@ const statItems = ref([
     </el-row>
 
     <!-- 统计部分 -->
-    <div class="stats-section">
+    <!-- <div class="stats-section">
       <h3>概览统计</h3>
       <el-row :gutter="24">
         <el-col :span="24 / statItems.length" v-for="item in statItems" :key="item.key">
@@ -79,37 +103,37 @@ const statItems = ref([
            </el-card>
         </el-col>
       </el-row>
-    </div>
+    </div> -->
 
     <!-- 详情标签页 -->
     <div class="details-section">
        <el-tabs type="border-card" shadow="never" class="detail-tabs">
         <el-tab-pane label="系统基本信息">
-          <SystemInfoPanel />
+          <SystemInfoPanel ref="systemInfoRef" />
         </el-tab-pane>
         <el-tab-pane label="系统补丁信息">
-          <PatchPanel />
+          <PatchPanel ref="patchRef" />
         </el-tab-pane>
         <el-tab-pane label="用户">
-          <UserInfoPanel />
+          <UserInfoPanel ref="userInfoRef" />
         </el-tab-pane>
         <el-tab-pane label="网络信息">
-          <NetworkInfoPanel />
+          <NetworkInfoPanel ref="networkInfoRef" />
         </el-tab-pane>
         <el-tab-pane label="开机启动项">
-          <StartupPanel />
+          <StartupPanel ref="startupRef" />
         </el-tab-pane>
         <el-tab-pane label="任务计划">
-          <CronTaskPanel />
+          <CronTaskPanel ref="cronTaskRef" />
         </el-tab-pane>
         <el-tab-pane label="进程排查">
-          <ProcessPanel />
+          <ProcessPanel ref="processRef" />
         </el-tab-pane>
         <el-tab-pane label="日志分析">
           <div>这里显示日志分析内容</div>
         </el-tab-pane>
         <el-tab-pane label="登入成功">
-          <LoginSuccessPanel />
+          <LoginSuccessPanel ref="loginSuccessRef" />
         </el-tab-pane>
         <el-tab-pane label="登入失败">
           <div>这里显示登入失败日志</div>
@@ -219,39 +243,55 @@ const statItems = ref([
 .detail-tabs,
 .log-tabs {
   border: none;
-  background: #f8fafd;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px 0 rgba(64,158,255,0.08);
-  padding: 12px 0 0 0;
+  background: #f6f8fa;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px 0 rgba(64,158,255,0.10);
+  padding: 8px 0 0 0;
 }
 :deep(.detail-tabs .el-tabs__header),
 :deep(.log-tabs .el-tabs__header) {
   background: transparent;
   border-bottom: none;
   margin-bottom: 8px;
+  padding-left: 8px;
 }
 :deep(.detail-tabs .el-tabs__item),
 :deep(.log-tabs .el-tabs__item) {
   border-radius: 10px 10px 0 0;
-  margin-right: 8px;
+  margin-right: 10px;
   padding: 10px 28px;
   font-size: 16px;
-  color: #409eff;
+  color: #3a4a5a;
   background: #eaf2ff;
-  transition: background 0.2s, color 0.2s;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(64,158,255,0.04);
+  border: 1.5px solid transparent;
+  letter-spacing: 1px;
+}
+:deep(.detail-tabs .el-tabs__item:hover),
+:deep(.log-tabs .el-tabs__item:hover) {
+  background: #d0e7ff;
+  color: #1769aa !important;
+  font-weight: bold;
+  text-shadow: 0 1px 0 #fff, 0 0 2px #eaf2ff;
+  box-shadow: 0 2px 8px rgba(64,158,255,0.10);
 }
 :deep(.detail-tabs .el-tabs__item.is-active),
 :deep(.log-tabs .el-tabs__item.is-active) {
-  background: #409eff;
-  color: #fff;
+  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
+  color: #fff !important;
   font-weight: bold;
+  box-shadow: 0 4px 16px rgba(64,158,255,0.13);
+  border-bottom: 2.5px solid #fff;
+  letter-spacing: 1.5px;
 }
 :deep(.detail-tabs .el-tabs__content),
 :deep(.log-tabs .el-tabs__content) {
   background: #fff;
-  border-radius: 0 0 10px 10px;
-  padding: 22px 18px;
-  min-height: 120px;
-  box-shadow: 0 1px 4px rgba(64,158,255,0.04);
+  border-radius: 0 0 16px 16px;
+  padding: 32px 24px;
+  min-height: 160px;
+  box-shadow: 0 2px 8px rgba(64,158,255,0.07);
 }
 </style>

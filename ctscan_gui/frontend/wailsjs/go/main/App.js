@@ -34,10 +34,6 @@ export function GetStartupItems() {
   return window['go']['main']['App']['GetStartupItems']();
 }
 
-export function GetStats() {
-  return window['go']['main']['App']['GetStats']();
-}
-
 export function GetSystemInfo() {
   return window['go']['main']['App']['GetSystemInfo']();
 }

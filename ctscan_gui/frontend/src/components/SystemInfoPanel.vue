@@ -10,11 +10,17 @@ const sysInfo = ref({
   go_version: ''
 })
 
-onMounted(() => {
+const refresh = () => {
   GetSystemInfo().then(info => {
     sysInfo.value = info
   })
+}
+
+onMounted(() => {
+  refresh()
 })
+
+defineExpose({ refresh })
 </script>
 <template>
   <el-descriptions title="系统基本信息" :column="2" border>

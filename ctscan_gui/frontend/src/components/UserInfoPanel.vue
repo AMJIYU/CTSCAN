@@ -12,14 +12,22 @@ const userInfo = ref({
 
 const allUsers = ref<{ username: string; uid: string; gid: string; home_dir: string; name: string }[]>([])
 
-onMounted(() => {
+// 添加 refresh 方法，用于重新获取用户信息
+const refresh = () => {
   GetUserInfo().then(info => {
     userInfo.value = info
   })
+}
+
+onMounted(() => {
+  refresh()
   GetAllUsers().then(list => {
     allUsers.value = list
   })
 })
+
+// 暴露 refresh 方法，供父组件调用
+defineExpose({ refresh })
 </script>
 <template>
   <el-descriptions title="当前用户信息" :column="2" border>

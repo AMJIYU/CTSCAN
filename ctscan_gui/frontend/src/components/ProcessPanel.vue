@@ -2,24 +2,21 @@
 import { ref, onMounted } from 'vue'
 import { GetAllProcesses } from '../../wailsjs/go/main/App'
 
-const processes = ref<{
-  pid: number;
-  name: string;
-  ppid: number;
-  parent_name: string;
-  create_time: number;
-  exe: string;
-  file_ctime: number;
-  file_mtime: number;
-  md5: string;
-  signature: string;
-}[]>([])
+const processes = ref<any[]>([])
 
-onMounted(() => {
+const processList = ref([])
+
+const refresh = () => {
   GetAllProcesses().then(list => {
     processes.value = list
   })
+}
+
+onMounted(() => {
+  refresh()
 })
+
+defineExpose({ refresh })
 </script>
 <template>
   <el-table :data="processes" style="width: 100%">

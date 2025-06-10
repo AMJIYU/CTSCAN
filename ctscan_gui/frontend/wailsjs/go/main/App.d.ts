@@ -18,8 +18,6 @@ export function GetPatchInfo():Promise<Array<main.PatchInfo>>;
 
 export function GetStartupItems():Promise<Array<main.StartupItem>>;
 
-export function GetStats():Promise<main.Stats>;
-
 export function GetSystemInfo():Promise<main.SystemInfo>;
 
 export function GetUserInfo():Promise<main.UserInfo>;

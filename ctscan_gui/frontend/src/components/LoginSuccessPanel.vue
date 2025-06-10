@@ -3,12 +3,24 @@ import { ref, onMounted } from 'vue'
 import { GetLoginSuccessRecords } from '../../wailsjs/go/main/App'
 
 const records = ref<any[]>([])
+const loginSuccessLogs = ref<any[]>([])
+
+// 添加 refresh 方法，用于重新获取登录成功日志信息
+const refresh = () => {
+  GetLoginSuccessRecords().then(logs => {
+    loginSuccessLogs.value = logs
+  })
+}
 
 onMounted(() => {
   GetLoginSuccessRecords().then(list => {
     records.value = list
   })
+  refresh()
 })
+
+// 暴露 refresh 方法，供父组件调用
+defineExpose({ refresh })
 </script>
 <template>
   <el-table :data="records" style="width: 100%">
