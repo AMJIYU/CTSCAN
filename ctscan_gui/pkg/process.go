@@ -12,16 +12,18 @@ import (
 )
 
 type ProcInfo struct {
-	PID        int32  `json:"pid"`
-	Name       string `json:"name"`
-	PPID       int32  `json:"ppid"`
-	ParentName string `json:"parent_name"`
-	CreateTime int64  `json:"create_time"`
-	Exe        string `json:"exe"`
-	FileCtime  int64  `json:"file_ctime"`
-	FileMtime  int64  `json:"file_mtime"`
-	MD5        string `json:"md5"`
-	Signature  string `json:"signature"`
+	PID        int32   `json:"pid"`
+	Name       string  `json:"name"`
+	PPID       int32   `json:"ppid"`
+	ParentName string  `json:"parent_name"`
+	CreateTime int64   `json:"create_time"`
+	Exe        string  `json:"exe"`
+	FileCtime  int64   `json:"file_ctime"`
+	FileMtime  int64   `json:"file_mtime"`
+	MD5        string  `json:"md5"`
+	Signature  string  `json:"signature"`
+	CPUPercent float64 `json:"cpu_percent"`
+	MemPercent float64 `json:"mem_percent"`
 }
 
 func getFileMD5(path string) string {
@@ -71,6 +73,8 @@ func (a *App) GetAllProcesses() []ProcInfo {
 		exe, _ := p.Exe()
 		ctime, _ := p.CreateTime()
 		ppid, _ := p.Ppid()
+		cpuPercent, _ := p.CPUPercent()
+		memPercent, _ := p.MemoryPercent()
 		parentName := ""
 		if ppid > 0 {
 			if parent, err := process.NewProcess(ppid); err == nil {
@@ -91,6 +95,8 @@ func (a *App) GetAllProcesses() []ProcInfo {
 			FileMtime:  fileMtime,
 			MD5:        md5sum,
 			Signature:  signature,
+			CPUPercent: cpuPercent,
+			MemPercent: float64(memPercent),
 		})
 	}
 	return result

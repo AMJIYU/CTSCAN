@@ -2,18 +2,28 @@
 import { ref, onMounted } from 'vue'
 import { GetNetworkInfo, GetNetworkConnections } from '../../wailsjs/go/pkg/App'
 
+interface InterfaceStats {
+  name: string;
+  bytes_sent: number;
+  bytes_recv: number;
+  packets_sent: number;
+  packets_recv: number;
+}
+
 interface NetworkInfo {
   hostname: string;
   ips: string[];
   macs: string[];
   interfaces: string[];
+  interface_stats: InterfaceStats[];
 }
 
 const networkInfo = ref<NetworkInfo>({
   hostname: '',
   ips: [],
   macs: [],
-  interfaces: []
+  interfaces: [],
+  interface_stats: []
 })
 
 const connections = ref<{ proto: string; local_addr: string; remote_addr: string; status: string; pid: number }[]>([])
@@ -46,6 +56,24 @@ defineExpose({ refresh })
       <div v-for="mac in networkInfo.macs" :key="mac">{{ mac }}</div>
     </el-descriptions-item>
   </el-descriptions>
+
+  <h4 style="margin-top:24px;">网卡流量统计</h4>
+  <el-table :data="networkInfo.interface_stats" style="width: 100%">
+    <el-table-column prop="name" label="网卡名称" />
+    <el-table-column label="发送流量">
+      <template #default="scope">
+        {{ (scope.row.bytes_sent / 1024 / 1024).toFixed(2) }} MB
+        ({{ scope.row.packets_sent }} 个数据包)
+      </template>
+    </el-table-column>
+    <el-table-column label="接收流量">
+      <template #default="scope">
+        {{ (scope.row.bytes_recv / 1024 / 1024).toFixed(2) }} MB
+        ({{ scope.row.packets_recv }} 个数据包)
+      </template>
+    </el-table-column>
+  </el-table>
+
   <h4 style="margin-top:24px;">网络连接详情</h4>
   <el-table :data="connections" style="width: 100%">
     <el-table-column prop="proto" label="协议" />

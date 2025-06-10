@@ -10,11 +10,20 @@ import (
 	gopsnet "github.com/shirou/gopsutil/v4/net"
 )
 
+type InterfaceStats struct {
+	Name        string `json:"name"`
+	BytesSent   uint64 `json:"bytes_sent"`
+	BytesRecv   uint64 `json:"bytes_recv"`
+	PacketsSent uint64 `json:"packets_sent"`
+	PacketsRecv uint64 `json:"packets_recv"`
+}
+
 type NetworkInfo struct {
-	Hostname   string   `json:"hostname"`
-	IPs        []string `json:"ips"`
-	MACs       []string `json:"macs"`
-	Interfaces []string `json:"interfaces"`
+	Hostname       string           `json:"hostname"`
+	IPs            []string         `json:"ips"`
+	MACs           []string         `json:"macs"`
+	Interfaces     []string         `json:"interfaces"`
+	InterfaceStats []InterfaceStats `json:"interface_stats"`
 }
 
 type NetworkConn struct {
@@ -29,9 +38,29 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 	var ips, macs, ifaces []string
 	hostname, _ := os.Hostname()
 	netIfs, _ := net.Interfaces()
+
+	// 获取网络流量统计
+	ioStats, _ := gopsnet.IOCounters(true)
+	interfaceStats := make([]InterfaceStats, 0)
+
 	for _, iface := range netIfs {
 		ifaces = append(ifaces, iface.Name)
 		macs = append(macs, iface.HardwareAddr.String())
+
+		// 查找对应网卡的流量统计
+		for _, stat := range ioStats {
+			if stat.Name == iface.Name {
+				interfaceStats = append(interfaceStats, InterfaceStats{
+					Name:        iface.Name,
+					BytesSent:   stat.BytesSent,
+					BytesRecv:   stat.BytesRecv,
+					PacketsSent: stat.PacketsSent,
+					PacketsRecv: stat.PacketsRecv,
+				})
+				break
+			}
+		}
+
 		addrs, _ := iface.Addrs()
 		for _, addr := range addrs {
 			var ip net.IP
@@ -49,11 +78,13 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 			}
 		}
 	}
+
 	return NetworkInfo{
-		Hostname:   hostname,
-		IPs:        ips,
-		MACs:       macs,
-		Interfaces: ifaces,
+		Hostname:       hostname,
+		IPs:            ips,
+		MACs:           macs,
+		Interfaces:     ifaces,
+		InterfaceStats: interfaceStats,
 	}
 }
 
