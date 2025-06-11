@@ -157,7 +157,14 @@ import { Timer, Operation, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetShellHistory } from '../../wailsjs/go/pkg/App'
 
-const records = ref([])
+interface ShellHistory {
+  time: string;
+  command: string;
+  user: string;
+  shell: string;
+}
+
+const records = ref<ShellHistory[]>([])
 const loading = ref(false)
 
 // 分页相关

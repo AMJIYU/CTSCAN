@@ -192,7 +192,28 @@
 import { ref, computed, onMounted } from 'vue'
 import { Timer, Document, User, Location } from '@element-plus/icons-vue'
 
-const records = ref([])
+declare global {
+  interface Window {
+    go: {
+      main: {
+        App: {
+          GetLoginFailedRecords(): Promise<LoginFailedRecord[]>
+        }
+      }
+    }
+  }
+}
+
+interface LoginFailedRecord {
+  time: string;
+  event_type: string;
+  source: string;
+  username: string;
+  ip_address: string;
+  reason: string;
+}
+
+const records = ref<LoginFailedRecord[]>([])
 const loading = ref(false)
 
 // 分页相关

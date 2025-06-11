@@ -29,6 +29,7 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 	case "linux":
 		out, err := exec.Command("grep", "Failed password", "/var/log/auth.log").CombinedOutput()
 		if err != nil {
+			println("Linux 获取登录失败记录错误:", err.Error())
 			return records
 		}
 		lines := strings.Split(string(out), "\n")
@@ -39,44 +40,53 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 			records = append(records, LoginFailed{Time: line[:15]})
 		}
 	case "darwin":
+		println("开始获取 macOS 登录失败记录...")
 		// 使用多个条件组合查询，确保能捕获所有登录失败情况
 		predicates := []string{
+			"subsystem == 'com.apple.security'",
+			"subsystem == 'com.apple.authentication'",
 			"eventMessage CONTAINS 'Failed to authenticate'",
 			"eventMessage CONTAINS 'authentication failed'",
 			"eventMessage CONTAINS 'password check failed'",
 			"eventMessage CONTAINS 'login failed'",
 			"eventMessage CONTAINS 'authentication error'",
 		}
-		
+
 		var allRecords []LoginFailed
 		for _, predicate := range predicates {
-			out, err := exec.Command("log", "show", "--predicate", predicate, "--info", "--last", "7d", "--style", "json").CombinedOutput()
+			println("执行查询:", predicate)
+			// 增加时间范围到30天，并添加更多日志级别
+			out, err := exec.Command("log", "show", "--predicate", predicate, "--info", "--debug", "--last", "30d", "--style", "json").CombinedOutput()
 			if err != nil {
+				println("查询失败:", err.Error())
 				continue
 			}
-			
+
 			// 解析 JSON 输出
 			var logEntries []struct {
-				Timestamp string `json:"timestamp"`
+				Timestamp    string `json:"timestamp"`
 				EventMessage string `json:"eventMessage"`
 			}
-			
+
 			if err := json.Unmarshal(out, &logEntries); err != nil {
+				println("JSON 解析失败:", err.Error())
 				continue
 			}
-			
+
+			println("找到", len(logEntries), "条记录")
+
 			for _, entry := range logEntries {
 				// 解析时间戳
 				timestamp, err := time.Parse(time.RFC3339, entry.Timestamp)
 				if err != nil {
 					continue
 				}
-				
+
 				// 解析用户名和失败原因
 				message := entry.EventMessage
 				username := ""
 				reason := ""
-				
+
 				// 提取用户名
 				if strings.Contains(message, "for user") {
 					parts := strings.Split(message, "for user")
@@ -89,7 +99,7 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 						username = strings.TrimSpace(parts[1])
 					}
 				}
-				
+
 				// 提取失败原因
 				if strings.Contains(message, "reason:") {
 					parts := strings.Split(message, "reason:")
@@ -100,7 +110,7 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 					// 如果没有明确的原因，使用消息本身作为原因
 					reason = message
 				}
-				
+
 				record := LoginFailed{
 					Time:      timestamp.Format("2006-01-02 15:04:05"),
 					EventID:   "4625",
@@ -110,11 +120,11 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 					IPAddress: "本地",
 					Reason:    reason,
 				}
-				
+
 				allRecords = append(allRecords, record)
 			}
 		}
-		
+
 		// 去重
 		seen := make(map[string]bool)
 		for _, record := range allRecords {
