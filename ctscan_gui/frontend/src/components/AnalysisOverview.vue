@@ -8,6 +8,7 @@ import CronTaskPanel from './CronTaskPanel.vue'
 import ProcessPanel from './ProcessPanel.vue'
 import LoginSuccessPanel from './LoginSuccessPanel.vue'
 import LoginFailedPanel from './LoginFailedPanel.vue'
+import ShellHistoryPanel from './ShellHistoryPanel.vue'
 import {
   Monitor,
   User,
@@ -31,6 +32,7 @@ const cronTaskRef = ref();
 const processRef = ref();
 const loginSuccessRef = ref();
 const loginFailedRef = ref();
+const shellHistoryRef = ref();
 
 // 当前激活的面板
 const activePanel = ref('system');
@@ -45,6 +47,7 @@ const panels = [
   { id: 'process', name: '进程排查', icon: Operation, component: ProcessPanel },
   { id: 'login-success', name: '登入成功', icon: Key, component: LoginSuccessPanel },
   { id: 'login-failed', name: '登入失败', icon: Warning, component: LoginFailedPanel },
+  { id: 'shell-history', name: '命令执行记录', icon: Operation, component: ShellHistoryPanel },
   { id: 'rdp', name: 'RDP登入', icon: RdpIcon, component: null }
 ];
 
@@ -59,6 +62,7 @@ const refreshInfo = () => {
   processRef.value?.refresh();
   loginSuccessRef.value?.refresh();
   loginFailedRef.value?.refresh();
+  shellHistoryRef.value?.refresh();
   console.log('重新获取所有选项卡信息');
 }
 
@@ -90,6 +94,9 @@ const switchPanel = (panelId: string) => {
       break;
     case 'login-failed':
       loginFailedRef.value?.refresh();
+      break;
+    case 'shell-history':
+      shellHistoryRef.value?.refresh();
       break;
   }
 }
@@ -151,6 +158,7 @@ const switchPanel = (panelId: string) => {
         <ProcessPanel v-if="activePanel === 'process'" ref="processRef" />
         <LoginSuccessPanel v-if="activePanel === 'login-success'" ref="loginSuccessRef" />
         <LoginFailedPanel v-if="activePanel === 'login-failed'" ref="loginFailedRef" />
+        <ShellHistoryPanel v-if="activePanel === 'shell-history'" ref="shellHistoryRef" />
         <div v-if="activePanel === 'rdp'" class="placeholder-content">
           <el-empty description="RDP登入日志功能开发中..." />
         </div>

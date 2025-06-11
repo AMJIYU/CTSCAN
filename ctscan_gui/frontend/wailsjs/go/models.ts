@@ -190,6 +190,24 @@ export namespace pkg {
 	        this.mem_percent = source["mem_percent"];
 	    }
 	}
+	export class ShellHistory {
+	    time: string;
+	    command: string;
+	    user: string;
+	    shell: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ShellHistory(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.time = source["time"];
+	        this.command = source["command"];
+	        this.user = source["user"];
+	        this.shell = source["shell"];
+	    }
+	}
 	export class StartupItem {
 	    name: string;
 	    path: string;
