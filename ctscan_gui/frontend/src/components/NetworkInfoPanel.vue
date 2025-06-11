@@ -143,7 +143,7 @@ const copyAddress = async (address: string) => {
       type: 'error',
       message: '复制失败',
       duration: 2000
-    })
+  })
   }
 }
 
@@ -333,8 +333,8 @@ defineExpose({ refresh })
             <el-tag :type="row.status === 'ESTABLISHED' ? 'success' : 'info'" size="small" class="status-tag">
               {{ row.status }}
             </el-tag>
-          </template>
-        </el-table-column>
+      </template>
+    </el-table-column>
         <el-table-column 
           prop="pid" 
           label="PID" 
@@ -356,9 +356,9 @@ defineExpose({ refresh })
           </template>
           <template #default="{ row }">
             <span class="pid-value">{{ row.pid }}</span>
-          </template>
-        </el-table-column>
-      </el-table>
+      </template>
+    </el-table-column>
+  </el-table>
 
       <div class="pagination-container">
         <el-pagination
@@ -373,7 +373,7 @@ defineExpose({ refresh })
       </div>
     </div>
   </div>
-</template>
+</template> 
 
 <style scoped>
 .network-info-panel {

@@ -426,7 +426,7 @@ defineExpose({ refresh })
           </div>
         </template>
       </el-table-column>
-    </el-table>
+  </el-table>
 
     <div class="pagination-container">
       <el-pagination
@@ -440,7 +440,7 @@ defineExpose({ refresh })
       />
     </div>
   </div>
-</template>
+</template> 
 
 <style scoped>
 .process-panel {

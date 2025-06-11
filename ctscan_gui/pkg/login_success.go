@@ -1,9 +1,13 @@
 package pkg
 
 import (
+	"bufio"
 	"os/exec"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -36,16 +40,58 @@ func (a *App) GetLoginSuccessRecords() []LoginSuccess {
 			records = append(records, LoginSuccess{Time: line[:15]})
 		}
 	case "darwin":
-		out, err := exec.Command("log", "show", "--predicate", "eventMessage CONTAINS 'login'", "--info", "--last", "1d").CombinedOutput()
+		cmd := exec.Command("last")
+		output, err := cmd.Output()
 		if err != nil {
 			return records
 		}
-		lines := strings.Split(string(out), "\n")
-		for _, line := range lines {
-			if line == "" {
+
+		scanner := bufio.NewScanner(strings.NewReader(string(output)))
+		// 匹配格式：eleven     ttys001                         四  5 29 10:36   still logged in
+		// 或者：eleven     ttys014                         二  5 27 14:10 - 14:10  (00:00)
+		re := regexp.MustCompile(`^(\S+)\s+(\S+)\s+(?:\S+\s+){1,2}(\d+)\s+(\d+):(\d+)(?:\s+-\s+\d+:\d+\s+\((\d+:\d+)\))?(?:\s+still logged in)?$`)
+
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.TrimSpace(line) == "" || strings.Contains(line, "wtmp begins") {
 				continue
 			}
-			records = append(records, LoginSuccess{Time: line})
+
+			matches := re.FindStringSubmatch(line)
+			if len(matches) >= 5 {
+				username := matches[1]
+				terminal := matches[2] // 获取终端信息
+				day := matches[3]
+				hour := matches[4]
+				minute := matches[5]
+
+				// 构建时间字符串
+				now := time.Now()
+				year := now.Year()
+				monthNum := now.Month()
+				dayNum, _ := strconv.Atoi(day)
+				hourNum, _ := strconv.Atoi(hour)
+				minuteNum, _ := strconv.Atoi(minute)
+
+				// 创建时间对象
+				t := time.Date(year, monthNum, dayNum, hourNum, minuteNum, 0, 0, time.Local)
+
+				// 检查是否是当前登录
+				status := "已登出"
+				if strings.Contains(line, "still logged in") {
+					status = "当前登录"
+				}
+
+				// 获取终端对应的设备路径
+				devicePath := "/dev/" + terminal
+
+				records = append(records, LoginSuccess{
+					Time:      t.Format(time.RFC3339),
+					EventType: status,
+					Source:    devicePath,
+					Username:  username,
+				})
+			}
 		}
 	}
 	return records
