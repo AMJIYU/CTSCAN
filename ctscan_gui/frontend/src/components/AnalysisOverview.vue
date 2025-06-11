@@ -111,11 +111,9 @@ const refreshInfo = () => {
 .overview-container {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  background: #fff;
-  padding: 32px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  gap: 40px;
+  background: transparent;
+  padding: 0;
 }
 
 .stats-section {
@@ -128,82 +126,69 @@ const refreshInfo = () => {
 }
 
 .action-card {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  transition: all 0.3s;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
 }
 
 .action-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(64, 158, 255, 0.12);
 }
 
 .card-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px;
+  padding: 32px;
 }
 
 .card-content .text-content {
   flex-grow: 1;
-  margin-left: 24px;
+  margin-left: 32px;
 }
 
 .card-content h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
+  margin: 0 0 12px 0;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+  position: relative;
+  display: inline-block;
+}
+
+.card-content h3::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, #409EFF 0%, #66b1ff 100%);
+  border-radius: 2px;
 }
 
 .card-content p {
   margin: 0;
-  font-size: 14px;
-  color: #909399;
-}
-
-.stats-section h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  text-align: center;
-  border: none;
-  border-radius: 8px;
-  padding: 24px 16px;
-  transition: all 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.stat-value {
-  font-size: 32px;
-  font-weight: bold;
-  line-height: 1.2;
-  margin-bottom: 8px;
-}
-
-.stat-label {
-  color: #606266;
-  font-size: 14px;
+  font-size: 16px;
+  color: #4a5568;
   font-weight: 500;
+  margin-top: 16px;
+  opacity: 0.85;
 }
 
 /* 主选项卡和子选项卡统一美化 */
 .detail-tabs,
 .log-tabs {
   border: none;
-  background: #f8fafc;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px 0 rgba(64,158,255,0.08);
-  padding: 12px 0 0 0;
+  background: transparent;
+  border-radius: 24px;
+  padding: 16px 0 0 0;
   overflow: hidden;
 }
 
@@ -211,33 +196,33 @@ const refreshInfo = () => {
 :deep(.log-tabs .el-tabs__header) {
   background: transparent;
   border-bottom: none;
-  margin-bottom: 12px;
-  padding-left: 12px;
+  margin-bottom: 24px;
+  padding-left: 16px;
 }
 
 :deep(.detail-tabs .el-tabs__item),
 :deep(.log-tabs .el-tabs__item) {
-  border-radius: 12px 12px 0 0;
-  margin-right: 12px;
-  padding: 12px 32px;
-  font-size: 15px;
+  border-radius: 16px 16px 0 0;
+  margin-right: 16px;
+  padding: 16px 36px;
+  font-size: 16px;
   color: #4a5568;
-  background: #edf2f7;
-  font-weight: 500;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(64,158,255,0.05);
-  border: 1px solid transparent;
-  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  font-weight: 600;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  letter-spacing: 0.3px;
   position: relative;
   overflow: hidden;
 }
 
 :deep(.detail-tabs .el-tabs__item:hover),
 :deep(.log-tabs .el-tabs__item:hover) {
-  background: #e2e8f0;
-  color: #2b6cb0 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(64,158,255,0.12);
+  background: rgba(255, 255, 255, 0.95);
+  color: #409EFF !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(64, 158, 255, 0.08);
 }
 
 :deep(.detail-tabs .el-tabs__item.is-active),
@@ -245,20 +230,18 @@ const refreshInfo = () => {
   background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
   color: #fff !important;
   font-weight: 600;
-  box-shadow: 0 6px 16px rgba(64,158,255,0.15);
-  border-bottom: 3px solid #fff;
-  letter-spacing: 0.8px;
+  box-shadow: 0 8px 20px rgba(64, 158, 255, 0.15);
   transform: translateY(-2px);
 }
 
 :deep(.detail-tabs .el-tabs__content),
 :deep(.log-tabs .el-tabs__content) {
-  background: #fff;
-  border-radius: 0 0 20px 20px;
-  padding: 36px 28px;
-  min-height: 180px;
-  box-shadow: 0 4px 12px rgba(64,158,255,0.08);
-  margin: 0 12px 12px 12px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 40px;
+  min-height: 200px;
+  margin: 0 16px 16px 16px;
 }
 
 :deep(.detail-tabs .el-tabs__nav-wrap::after) {
@@ -267,5 +250,14 @@ const refreshInfo = () => {
 
 :deep(.detail-tabs .el-tabs__active-bar) {
   display: none;
+}
+
+/* 自定义滚动条 */
+:deep(.el-scrollbar__bar) {
+  opacity: 0.6;
+}
+
+:deep(.el-scrollbar__bar:hover) {
+  opacity: 0.8;
 }
 </style>
