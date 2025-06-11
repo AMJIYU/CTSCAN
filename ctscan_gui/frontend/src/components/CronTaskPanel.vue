@@ -17,7 +17,29 @@ onMounted(() => {
 defineExpose({ refresh })
 </script>
 <template>
-  <el-table :data="cronTasks" style="width: 100%">
-    <el-table-column prop="line" label="计划任务内容" />
-  </el-table>
-</template> 
+  <div class="cron-task-panel">
+    <el-table :data="cronTasks" style="width: 100%">
+      <el-table-column prop="line" label="计划任务内容">
+        <template #default="{ row }">
+          <pre class="task-content">{{ row.line }}</pre>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
+</template>
+
+<style scoped>
+.cron-task-panel {
+  padding: 16px;
+}
+
+.task-content {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: monospace;
+  margin: 0;
+  padding: 8px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+</style> 

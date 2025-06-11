@@ -8,6 +8,8 @@ export function GetAllUsers():Promise<Array<pkg.SystemUser>>;
 
 export function GetCronTasks():Promise<Array<pkg.CronTask>>;
 
+export function GetLoginFailedRecords():Promise<Array<pkg.LoginFailed>>;
+
 export function GetLoginSuccessRecords():Promise<Array<pkg.LoginSuccess>>;
 
 export function GetNetworkConnections():Promise<Array<pkg.NetworkConn>>;

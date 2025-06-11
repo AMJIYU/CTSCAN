@@ -52,6 +52,36 @@ export namespace pkg {
 	        this.packets_recv = source["packets_recv"];
 	    }
 	}
+	export class LoginFailed {
+	    time: string;
+	    event_id: string;
+	    login_type: string;
+	    source_ip: string;
+	    username: string;
+	    workstation: string;
+	    subject_user: string;
+	    subject_domain: string;
+	    process: string;
+	    failure_reason: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LoginFailed(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.time = source["time"];
+	        this.event_id = source["event_id"];
+	        this.login_type = source["login_type"];
+	        this.source_ip = source["source_ip"];
+	        this.username = source["username"];
+	        this.workstation = source["workstation"];
+	        this.subject_user = source["subject_user"];
+	        this.subject_domain = source["subject_domain"];
+	        this.process = source["process"];
+	        this.failure_reason = source["failure_reason"];
+	    }
+	}
 	export class LoginSuccess {
 	    time: string;
 	    event_id: string;

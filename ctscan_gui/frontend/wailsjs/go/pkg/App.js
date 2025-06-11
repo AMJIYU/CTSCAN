@@ -14,6 +14,10 @@ export function GetCronTasks() {
   return window['go']['pkg']['App']['GetCronTasks']();
 }
 
+export function GetLoginFailedRecords() {
+  return window['go']['pkg']['App']['GetLoginFailedRecords']();
+}
+
 export function GetLoginSuccessRecords() {
   return window['go']['pkg']['App']['GetLoginSuccessRecords']();
 }
