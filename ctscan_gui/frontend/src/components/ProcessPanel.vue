@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { GetAllProcesses } from '../../wailsjs/go/pkg/App'
 import { Monitor, Document, Connection, Timer, Key } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -26,6 +26,78 @@ const total = ref(0)
 const sortProp = ref('cpu_percent')
 const sortOrder = ref('descending')
 const loading = ref(false)
+
+// 筛选条件
+const filters = ref({
+  pid: '',
+  name: '',
+  ppid: '',
+  parent_name: '',
+  exe: '',
+  md5: '',
+  signature: ''
+})
+
+// 重置筛选条件
+const resetFilters = () => {
+  filters.value = {
+    pid: '',
+    name: '',
+    ppid: '',
+    parent_name: '',
+    exe: '',
+    md5: '',
+    signature: ''
+  }
+  currentPage.value = 1
+}
+
+// 筛选后的数据
+const filteredProcesses = computed(() => {
+  return processes.value.filter(process => {
+    return (
+      (!filters.value.pid || process.pid.toString().includes(filters.value.pid)) &&
+      (!filters.value.name || process.name.toLowerCase().includes(filters.value.name.toLowerCase())) &&
+      (!filters.value.ppid || process.ppid.toString().includes(filters.value.ppid)) &&
+      (!filters.value.parent_name || (process.parent_name && process.parent_name.toLowerCase().includes(filters.value.parent_name.toLowerCase()))) &&
+      (!filters.value.exe || process.exe.toLowerCase().includes(filters.value.exe.toLowerCase())) &&
+      (!filters.value.md5 || (process.md5 && process.md5.toLowerCase().includes(filters.value.md5.toLowerCase()))) &&
+      (!filters.value.signature || (process.signature && process.signature.toLowerCase().includes(filters.value.signature.toLowerCase())))
+    )
+  })
+})
+
+// 计算排序后的数据
+const sortedProcesses = computed(() => {
+  const sorted = [...filteredProcesses.value]
+  if (sortProp.value && sortOrder.value) {
+    sorted.sort((a, b) => {
+      const aValue = a[sortProp.value as keyof ProcessInfo]
+      const bValue = b[sortProp.value as keyof ProcessInfo]
+      if (sortOrder.value === 'ascending') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    })
+  }
+  return sorted
+})
+
+// 计算当前页的数据
+const currentPageData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return sortedProcesses.value.slice(start, end)
+})
+
+// 监听筛选条件变化
+watch(filters, () => {
+  total.value = filteredProcesses.value.length
+  if (currentPage.value > Math.ceil(total.value / pageSize.value)) {
+    currentPage.value = 1
+  }
+}, { deep: true })
 
 // 复制路径到剪贴板
 const copyPath = async (path: string) => {
@@ -59,30 +131,6 @@ const handleSortChange = ({ prop, order }: { prop: string, order: string }) => {
   sortOrder.value = order
 }
 
-// 计算排序后的数据
-const sortedProcesses = computed(() => {
-  const sorted = [...processes.value]
-  if (sortProp.value && sortOrder.value) {
-    sorted.sort((a, b) => {
-      const aValue = a[sortProp.value as keyof ProcessInfo]
-      const bValue = b[sortProp.value as keyof ProcessInfo]
-      if (sortOrder.value === 'ascending') {
-        return aValue > bValue ? 1 : -1
-      } else {
-        return aValue < bValue ? 1 : -1
-      }
-    })
-  }
-  return sorted
-})
-
-// 计算当前页的数据
-const currentPageData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return sortedProcesses.value.slice(start, end)
-})
-
 const refresh = () => {
   loading.value = true
   GetAllProcesses().then(list => {
@@ -90,6 +138,22 @@ const refresh = () => {
     total.value = list.length
   }).finally(() => {
     loading.value = false
+  })
+}
+
+// 格式化时间戳
+const formatTimestamp = (timestamp: number): string => {
+  if (!timestamp) return '-'
+  // 将毫秒级时间戳转换为日期对象
+  const date = new Date(timestamp)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
   })
 }
 
@@ -106,6 +170,14 @@ defineExpose({ refresh })
       <el-icon :size="20" color="#409EFF"><Monitor /></el-icon>
       <h2>进程信息</h2>
       <span class="total-count">共 {{ total }} 个进程</span>
+      <el-button 
+        type="primary" 
+        link 
+        @click="resetFilters"
+        class="reset-button"
+      >
+        重置筛选
+      </el-button>
     </div>
 
     <el-table 
@@ -126,6 +198,17 @@ defineExpose({ refresh })
         align="center"
         resizable
       >
+        <template #header>
+          <div class="table-header">
+            <span>PID</span>
+            <el-input
+              v-model="filters.pid"
+              placeholder="筛选PID"
+              size="small"
+              clearable
+            />
+          </div>
+        </template>
         <template #default="{ row }">
           <span class="pid-value">{{ row.pid }}</span>
         </template>
@@ -138,11 +221,83 @@ defineExpose({ refresh })
         resizable
         show-overflow-tooltip
       >
+        <template #header>
+          <div class="table-header">
+            <span>进程名</span>
+            <el-input
+              v-model="filters.name"
+              placeholder="筛选进程名"
+              size="small"
+              clearable
+            />
+          </div>
+        </template>
         <template #default="{ row }">
           <div class="process-name">
             <el-icon><Document /></el-icon>
             <span>{{ row.name }}</span>
           </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column 
+        prop="exe" 
+        label="可执行文件路径" 
+        min-width="200"
+        resizable
+        show-overflow-tooltip
+      >
+        <template #header>
+          <div class="table-header">
+            <span>可执行文件路径</span>
+            <el-input
+              v-model="filters.exe"
+              placeholder="筛选路径"
+              size="small"
+              clearable
+            />
+          </div>
+        </template>
+        <template #default="{ row }">
+          <div class="path-cell">
+            <el-icon><Connection /></el-icon>
+            <span class="path-value">{{ row.exe }}</span>
+            <el-button
+              class="copy-button"
+              type="primary"
+              link
+              @click="copyPath(row.exe)"
+            >
+              <el-icon><CopyDocument /></el-icon>
+            </el-button>
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column 
+        prop="signature" 
+        label="签名信息" 
+        min-width="200"
+        resizable
+        show-overflow-tooltip
+      >
+        <template #header>
+          <div class="table-header">
+            <span>签名信息</span>
+            <el-input
+              v-model="filters.signature"
+              placeholder="筛选签名"
+              size="small"
+              clearable
+            />
+          </div>
+        </template>
+        <template #default="{ row }">
+          <div v-if="row.signature" class="signature-cell">
+            <el-icon><Key /></el-icon>
+            <span>{{ row.signature }}</span>
+          </div>
+          <span v-else class="no-value">-</span>
         </template>
       </el-table-column>
 
@@ -153,6 +308,17 @@ defineExpose({ refresh })
         align="center"
         resizable
       >
+        <template #header>
+          <div class="table-header">
+            <span>父PID</span>
+            <el-input
+              v-model="filters.ppid"
+              placeholder="筛选父PID"
+              size="small"
+              clearable
+            />
+          </div>
+        </template>
         <template #default="{ row }">
           <span class="pid-value">{{ row.ppid }}</span>
         </template>
@@ -165,12 +331,47 @@ defineExpose({ refresh })
         resizable
         show-overflow-tooltip
       >
+        <template #header>
+          <div class="table-header">
+            <span>父进程名</span>
+            <el-input
+              v-model="filters.parent_name"
+              placeholder="筛选父进程名"
+              size="small"
+              clearable
+            />
+          </div>
+        </template>
         <template #default="{ row }">
           <div class="process-name" v-if="row.parent_name">
             <el-icon><Document /></el-icon>
             <span>{{ row.parent_name }}</span>
           </div>
           <span v-else class="no-parent">-</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column 
+        prop="md5" 
+        label="MD5" 
+        min-width="150"
+        resizable
+        show-overflow-tooltip
+      >
+        <template #header>
+          <div class="table-header">
+            <span>MD5</span>
+            <el-input
+              v-model="filters.md5"
+              placeholder="筛选MD5"
+              size="small"
+              clearable
+            />
+          </div>
+        </template>
+        <template #default="{ row }">
+          <span v-if="row.md5" class="md5-value">{{ row.md5 }}</span>
+          <span v-else class="no-value">-</span>
         </template>
       </el-table-column>
 
@@ -221,60 +422,8 @@ defineExpose({ refresh })
         <template #default="{ row }">
           <div class="time-value">
             <el-icon><Timer /></el-icon>
-            <span>{{ row.create_time ? new Date(row.create_time * 1000).toLocaleString() : '-' }}</span>
+            <span>{{ formatTimestamp(row.create_time) }}</span>
           </div>
-        </template>
-      </el-table-column>
-
-      <el-table-column 
-        prop="exe" 
-        label="可执行文件路径" 
-        min-width="200"
-        resizable
-        show-overflow-tooltip
-      >
-        <template #default="{ row }">
-          <div class="path-cell">
-            <el-icon><Connection /></el-icon>
-            <span class="path-value">{{ row.exe }}</span>
-            <el-button
-              class="copy-button"
-              type="primary"
-              link
-              @click="copyPath(row.exe)"
-            >
-              <el-icon><CopyDocument /></el-icon>
-            </el-button>
-          </div>
-        </template>
-      </el-table-column>
-
-      <el-table-column 
-        prop="md5" 
-        label="MD5" 
-        min-width="150"
-        resizable
-        show-overflow-tooltip
-      >
-        <template #default="{ row }">
-          <span v-if="row.md5" class="md5-value">{{ row.md5 }}</span>
-          <span v-else class="no-value">-</span>
-        </template>
-      </el-table-column>
-
-      <el-table-column 
-        prop="signature" 
-        label="签名信息" 
-        min-width="200"
-        resizable
-        show-overflow-tooltip
-      >
-        <template #default="{ row }">
-          <div v-if="row.signature" class="signature-cell">
-            <el-icon><Key /></el-icon>
-            <span>{{ row.signature }}</span>
-          </div>
-          <span v-else class="no-value">-</span>
         </template>
       </el-table-column>
     </el-table>
@@ -509,5 +658,20 @@ defineExpose({ refresh })
     width: 30px;
     height: 30px;
   }
+}
+
+.table-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.table-header span {
+  font-weight: bold;
+  color: #606266;
+}
+
+.reset-button {
+  margin-left: 16px;
 }
 </style> 
