@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { GetNetworkInfo, GetNetworkConnections } from '../../wailsjs/go/pkg/App'
-import { Monitor, Connection, DataLine } from '@element-plus/icons-vue'
+import { Monitor, Connection, DataLine, CopyDocument } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 interface InterfaceStats {
   name: string;
@@ -54,6 +55,24 @@ const refresh = async () => {
     connections.value = conns
   } catch (error) {
     console.error('获取网络信息失败:', error)
+  }
+}
+
+// 复制地址到剪贴板
+const copyAddress = async (address: string) => {
+  try {
+    await navigator.clipboard.writeText(address)
+    ElMessage({
+      type: 'success',
+      message: '地址已复制到剪贴板',
+      duration: 2000
+    })
+  } catch (err) {
+    ElMessage({
+      type: 'error',
+      message: '复制失败',
+      duration: 2000
+    })
   }
 }
 
@@ -135,32 +154,88 @@ defineExpose({ refresh })
         <el-icon :size="18" color="#409EFF"><Connection /></el-icon>
         <h3>网络连接详情</h3>
       </div>
-      <el-table :data="connections" style="width: 100%" size="small">
-        <el-table-column prop="proto" label="协议" width="65" align="center">
+      <el-table 
+        :data="connections" 
+        style="width: 100%" 
+        size="small"
+        border
+        :resizable="true"
+      >
+        <el-table-column 
+          prop="proto" 
+          label="协议" 
+          min-width="65" 
+          align="center"
+          resizable
+        >
           <template #default="{ row }">
             <el-tag size="small" :type="row.proto === 'tcp' ? 'primary' : 'success'" class="proto-tag">
               {{ row.proto.toUpperCase() }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="local_addr" label="本地地址" min-width="100">
+        <el-table-column 
+          prop="local_addr" 
+          label="本地地址" 
+          min-width="150"
+          resizable
+          show-overflow-tooltip
+        >
           <template #default="{ row }">
-            <span class="address-value">{{ row.local_addr }}</span>
+            <div class="address-cell">
+              <span class="address-value">{{ row.local_addr }}</span>
+              <el-button
+                class="copy-button"
+                type="primary"
+                link
+                @click="copyAddress(row.local_addr)"
+              >
+                <el-icon><CopyDocument /></el-icon>
+              </el-button>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="remote_addr" label="远程地址" min-width="100">
+        <el-table-column 
+          prop="remote_addr" 
+          label="远程地址" 
+          min-width="150"
+          resizable
+          show-overflow-tooltip
+        >
           <template #default="{ row }">
-            <span class="address-value">{{ row.remote_addr }}</span>
+            <div class="address-cell">
+              <span class="address-value">{{ row.remote_addr }}</span>
+              <el-button
+                class="copy-button"
+                type="primary"
+                link
+                @click="copyAddress(row.remote_addr)"
+              >
+                <el-icon><CopyDocument /></el-icon>
+              </el-button>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="150" align="center">
+        <el-table-column 
+          prop="status" 
+          label="状态" 
+          min-width="85"
+          align="center"
+          resizable
+        >
           <template #default="{ row }">
             <el-tag :type="row.status === 'ESTABLISHED' ? 'success' : 'info'" size="small" class="status-tag">
               {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="pid" label="PID" width="85" align="center">
+        <el-table-column 
+          prop="pid" 
+          label="PID" 
+          min-width="65"
+          align="center"
+          resizable
+        >
           <template #default="{ row }">
             <span class="pid-value">{{ row.pid }}</span>
           </template>
@@ -330,15 +405,36 @@ defineExpose({ refresh })
   border-radius: 3px;
 }
 
+.address-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .address-value {
   font-family: monospace;
   font-size: 12px;
   color: #2d3748;
-  display: inline-block;
-  max-width: 100%;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.copy-button {
+  padding: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.address-cell:hover .copy-button {
+  opacity: 1;
+}
+
+.copy-button:hover {
+  background-color: rgba(64, 158, 255, 0.1);
+  border-radius: 4px;
 }
 
 .pid-value {
@@ -388,5 +484,17 @@ defineExpose({ refresh })
 
 :deep(.el-table--small) {
   font-size: 13px;
+}
+
+:deep(.el-table__column-resize-proxy) {
+  background-color: #409EFF;
+}
+
+:deep(.el-table__column-resize-handle) {
+  background-color: #409EFF;
+}
+
+:deep(.el-table__column-resize-handle:hover) {
+  background-color: #66b1ff;
 }
 </style> 

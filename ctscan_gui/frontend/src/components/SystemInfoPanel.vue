@@ -78,71 +78,52 @@ defineExpose({ refresh })
 
   <el-divider />
 
-  <div class="disks-section">
-    <h3>磁盘信息</h3>
-    <div class="disks-grid">
-      <div v-for="disk in sysInfo.disks" :key="disk.mount_point" class="disk-card">
-        <div class="disk-header">
+  <div class="info-card">
+    <div class="card-header">
+      <el-icon :size="18" color="#409EFF"><Folder /></el-icon>
+      <h3>磁盘信息</h3>
+    </div>
+    <div class="disk-list">
+      <div v-for="disk in sysInfo.disks" :key="disk.mount_point" class="disk-item">
+        <div class="disk-name">
           <el-icon><Folder /></el-icon>
           <span>{{ disk.mount_point }}</span>
         </div>
         <div class="disk-stats">
-          <div class="stat-item">
+          <span class="stat-item">
             <span class="label">总容量</span>
             <span class="value">{{ formatMemory(disk.total_size) }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="label">已用空间</span>
+          </span>
+          <span class="stat-item">
+            <span class="label">已用</span>
             <span class="value">{{ formatMemory(disk.used_size) }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="label">可用空间</span>
+          </span>
+          <span class="stat-item">
+            <span class="label">可用</span>
             <span class="value">{{ formatMemory(disk.free_size) }}</span>
-          </div>
+          </span>
+          <span class="stat-item">
+            <span class="label">使用率</span>
+            <span class="value">{{ (disk.used_size / disk.total_size * 100).toFixed(1) }}%</span>
+          </span>
         </div>
-        <div class="disk-usage">
-          <span class="usage-label">使用率</span>
-          <el-progress :percentage="disk.usage" :format="(val) => val.toFixed(1) + '%'" />
-        </div>
+        <el-progress 
+          :percentage="(disk.used_size / disk.total_size * 100)" 
+          :status="(disk.used_size / disk.total_size * 100) > 90 ? 'exception' : ''"
+          :stroke-width="8"
+          :show-text="false"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.disks-section {
+.info-card {
   margin-top: 24px;
 }
 
-.disks-section h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a202c;
-  margin-bottom: 20px;
-}
-
-.disks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.disk-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-.disk-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
-}
-
-.disk-header {
+.card-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -152,20 +133,51 @@ defineExpose({ refresh })
   font-size: 16px;
 }
 
-.disk-header .el-icon {
+.disk-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.disk-item {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.disk-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.disk-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #1a202c;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.disk-name .el-icon {
   color: #409EFF;
 }
 
 .disk-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
 }
 
 .stat-item {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 4px;
 }
 
@@ -175,20 +187,10 @@ defineExpose({ refresh })
 }
 
 .stat-item .value {
-  font-size: 14px;
+  font-family: monospace;
+  font-size: 13px;
   color: #2d3748;
   font-weight: 500;
-}
-
-.disk-usage {
-  margin-top: 12px;
-}
-
-.usage-label {
-  display: block;
-  font-size: 12px;
-  color: #718096;
-  margin-bottom: 8px;
 }
 
 :deep(.el-descriptions) {
@@ -217,10 +219,11 @@ defineExpose({ refresh })
 
 :deep(.el-progress-bar__outer) {
   background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
 }
 
 :deep(.el-progress-bar__inner) {
-  transition: all 0.3s ease;
+  border-radius: 4px;
 }
 
 :deep(.el-divider) {

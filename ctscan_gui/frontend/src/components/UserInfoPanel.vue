@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { GetUserInfo, GetAllUsers } from '../../wailsjs/go/pkg/App'
-import { User, UserFilled } from '@element-plus/icons-vue'
+import { User, UserFilled, CopyDocument } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const userInfo = ref({
   username: '',
@@ -24,6 +25,24 @@ const refresh = async () => {
     allUsers.value = users
   } catch (error) {
     console.error('获取用户信息失败:', error)
+  }
+}
+
+// 复制路径到剪贴板
+const copyPath = async (path: string) => {
+  try {
+    await navigator.clipboard.writeText(path)
+    ElMessage({
+      type: 'success',
+      message: '路径已复制到剪贴板',
+      duration: 2000
+    })
+  } catch (err) {
+    ElMessage({
+      type: 'error',
+      message: '复制失败',
+      duration: 2000
+    })
   }
 }
 
@@ -60,8 +79,19 @@ defineExpose({ refresh })
         <el-icon :size="20" color="#409EFF"><UserFilled /></el-icon>
         <h3>系统用户列表</h3>
       </div>
-      <el-table :data="allUsers" style="width: 100%">
-        <el-table-column prop="username" label="用户名" min-width="120">
+      <el-table 
+        :data="allUsers" 
+        style="width: 100%"
+        border
+        :resizable="true"
+        size="small"
+      >
+        <el-table-column 
+          prop="username" 
+          label="用户名" 
+          min-width="120"
+          resizable
+        >
           <template #default="{ row }">
             <div class="user-cell">
               <el-icon><User /></el-icon>
@@ -69,14 +99,48 @@ defineExpose({ refresh })
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="uid" label="UID" width="100" />
-        <el-table-column prop="gid" label="GID" width="100" />
-        <el-table-column prop="home_dir" label="家目录" min-width="200">
+        <el-table-column 
+          prop="uid" 
+          label="UID" 
+          min-width="80"
+          align="center"
+          resizable
+        />
+        <el-table-column 
+          prop="gid" 
+          label="GID" 
+          min-width="80"
+          align="center"
+          resizable
+        />
+        <el-table-column 
+          prop="home_dir" 
+          label="家目录" 
+          min-width="200"
+          resizable
+          show-overflow-tooltip
+        >
           <template #default="{ row }">
-            <span class="path-value">{{ row.home_dir }}</span>
+            <div class="path-cell">
+              <span class="path-value">{{ row.home_dir }}</span>
+              <el-button
+                class="copy-button"
+                type="primary"
+                link
+                @click="copyPath(row.home_dir)"
+              >
+                <el-icon><CopyDocument /></el-icon>
+              </el-button>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="显示名" min-width="150" />
+        <el-table-column 
+          prop="name" 
+          label="显示名" 
+          min-width="150"
+          resizable
+          show-overflow-tooltip
+        />
       </el-table>
     </div>
   </div>
@@ -128,13 +192,50 @@ defineExpose({ refresh })
   color: #2d3748;
 }
 
+.path-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .path-value {
   font-family: monospace;
   background: rgba(0, 0, 0, 0.02);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 13px;
-  word-break: break-all;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy-button {
+  padding: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.path-cell:hover .copy-button {
+  opacity: 1;
+}
+
+.copy-button:hover {
+  background-color: rgba(64, 158, 255, 0.1);
+  border-radius: 4px;
+}
+
+:deep(.el-table__column-resize-proxy) {
+  background-color: #409EFF;
+}
+
+:deep(.el-table__column-resize-handle) {
+  background-color: #409EFF;
+}
+
+:deep(.el-table__column-resize-handle:hover) {
+  background-color: #66b1ff;
 }
 
 :deep(.el-table) {
