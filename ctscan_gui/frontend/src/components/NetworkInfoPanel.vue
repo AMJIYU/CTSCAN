@@ -157,50 +157,6 @@ defineExpose({ refresh })
 
 <template>
   <div class="network-info-panel">
-    <!-- 基本信息卡片 -->
-    <div class="info-card">
-      <div class="card-header">
-        <el-icon :size="18" color="#409EFF"><Monitor /></el-icon>
-        <h3>网络基本信息</h3>
-      </div>
-      <div class="interface-list">
-        <div v-for="(iface, index) in networkInfo.interfaces" :key="iface" class="interface-item">
-          <div class="interface-info">
-            <div class="interface-name">
-              <el-icon><Connection /></el-icon>
-              <span>{{ iface }}</span>
-            </div>
-            <div class="interface-details">
-              <div class="basic-info">
-                <template v-if="networkInfo.ips[index]">
-                  <span class="label">IP</span>
-                  <span class="value ip-tag">{{ networkInfo.ips[index] }}</span>
-                </template>
-                <template v-if="networkInfo.macs[index]">
-                  <span class="label">MAC</span>
-                  <span class="value mac-tag">{{ networkInfo.macs[index] }}</span>
-                </template>
-              </div>
-              <template v-if="networkInfo.interface_stats[index]">
-                <div class="traffic-stats">
-                  <div class="traffic-item">
-                    <span class="label">发送</span>
-                    <span class="value">{{ (networkInfo.interface_stats[index].bytes_sent / 1024 / 1024).toFixed(2) }} MB</span>
-                    <span class="packets">{{ networkInfo.interface_stats[index].packets_sent }} 包</span>
-                  </div>
-                  <div class="traffic-item">
-                    <span class="label">接收</span>
-                    <span class="value">{{ (networkInfo.interface_stats[index].bytes_recv / 1024 / 1024).toFixed(2) }} MB</span>
-                    <span class="packets">{{ networkInfo.interface_stats[index].packets_recv }} 包</span>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- 网络连接详情 -->
     <div class="info-card">
       <div class="card-header">
@@ -372,6 +328,50 @@ defineExpose({ refresh })
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
         />
+      </div>
+    </div>
+
+    <!-- 基本信息卡片 -->
+    <div class="info-card">
+      <div class="card-header">
+        <el-icon :size="18" color="#409EFF"><Monitor /></el-icon>
+        <h3>网络基本信息</h3>
+      </div>
+      <div class="interface-list">
+        <div v-for="(iface, index) in networkInfo.interfaces" :key="iface" class="interface-item">
+          <div class="interface-info">
+            <div class="interface-name">
+              <el-icon><Connection /></el-icon>
+              <span>{{ iface }}</span>
+            </div>
+            <div class="interface-details">
+              <div class="basic-info">
+                <template v-if="networkInfo.ips[index]">
+                  <span class="label">IP</span>
+                  <span class="value ip-tag">{{ networkInfo.ips[index] }}</span>
+                </template>
+                <template v-if="networkInfo.macs[index]">
+                  <span class="label">MAC</span>
+                  <span class="value mac-tag">{{ networkInfo.macs[index] }}</span>
+                </template>
+              </div>
+              <template v-if="networkInfo.interface_stats[index]">
+                <div class="traffic-stats">
+                  <div class="traffic-item">
+                    <span class="label">发送</span>
+                    <span class="value">{{ (networkInfo.interface_stats[index].bytes_sent / 1024 / 1024).toFixed(2) }} MB</span>
+                    <span class="packets">{{ networkInfo.interface_stats[index].packets_sent }} 包</span>
+                  </div>
+                  <div class="traffic-item">
+                    <span class="label">接收</span>
+                    <span class="value">{{ (networkInfo.interface_stats[index].bytes_recv / 1024 / 1024).toFixed(2) }} MB</span>
+                    <span class="packets">{{ networkInfo.interface_stats[index].packets_recv }} 包</span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
