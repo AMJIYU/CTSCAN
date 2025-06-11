@@ -25,35 +25,15 @@ const activeMenu = ref('overview');
         <span class="menu-item">帮助</span>
       </div>
       <div class="menubar-right">
- 
         <div class="header-right">
-            你好, 欢迎使用 CTScan!
-            <el-button size="small" class="lang-btn">En</el-button>
-          </div>
+          你好, 欢迎使用 CTScan!
+          <el-button size="small" class="lang-btn">En</el-button>
+        </div>
       </div>
     </div>
     <el-container class="main-container">
-      <!-- 侧边栏 -->
-      <el-aside width="260px" class="sidebar">
-        <div class="start-button-container">
-          <el-button type="primary" size="large" class="start-button" :icon="DataAnalysis">开始分析</el-button>
-        </div>
-        <el-menu :default-active="activeMenu" class="sidebar-menu" background-color="transparent">
-          <el-menu-item index="api" class="sidebar-menu-item">
-            <el-icon><Setting /></el-icon>
-            <span>设置 API</span>
-          </el-menu-item>
-          <div class="sidebar-group-title">分析模块</div>
-          <el-menu-item index="overview" class="sidebar-menu-item analysis-overview-menu">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>分析概览</span>
-          </el-menu-item>
-        </el-menu>
-        <div class="os-info">OS: N/A<br>来源: 本地</div>
-      </el-aside>
       <!-- 主内容区 -->
       <el-main class="main-content-wrapper">
-        
         <div class="content-body">
           <!-- 渲染主视图 -->
           <AnalysisOverview />
@@ -68,123 +48,127 @@ const activeMenu = ref('overview');
   height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: #f8fafc;
 }
+
 .app-menubar {
-  height: 44px;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  height: 56px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 40px;
   font-size: 15px;
   user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  position: relative;
+  z-index: 10;
 }
+
 .menubar-left {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 32px;
 }
+
 .logo {
-  font-weight: bold;
-  font-size: 18px;
+  font-weight: 700;
+  font-size: 20px;
   color: #409EFF;
-  margin-right: 16px;
+  margin-right: 24px;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #409EFF 0%, #66b1ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
+
 .menu-item {
-  color: #303133;
+  color: #4a5568;
   cursor: pointer;
-  padding: 0 8px;
-  border-radius: 4px;
-  transition: background 0.2s;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
+
 .menu-item:hover {
-  background: #f2f6fc;
+  background: #f0f7ff;
+  color: #409EFF;
+  transform: translateY(-1px);
 }
 
 .main-container {
   flex: 1;
-  height: calc(100vh - 44px);
-}
-
-.sidebar {
-  background-color: #fff;
-  border-right: 1px solid #ebeef5;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.03);
+  height: calc(100vh - 56px);
+  background-color: #f8fafc;
   position: relative;
-}
-.start-button-container {
-  padding: 32px 24px 16px 24px;
-}
-.start-button {
-  width: 100%;
-  height: 48px;
-  font-size: 18px;
-  border-radius: 12px;
-}
-.sidebar-menu {
-  border-right: none !important;
-  margin-top: 8px;
-  background: transparent;
-}
-.sidebar-menu-item {
-  height: 44px;
-  line-height: 44px;
-  margin: 4px 0;
-  border-radius: 8px;
-  font-size: 16px;
-}
-.analysis-overview-menu.is-active {
-  background-color: #ecf5ff !important;
-  color: #409EFF !important;
-  border-radius: 8px;
-}
-.sidebar-group-title {
-  font-size: 13px;
-  color: #909399;
-  margin: 18px 0 4px 24px;
-  font-weight: 500;
-}
-.os-info {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  padding: 18px 24px;
-  font-size: 13px;
-  color: #909399;
-  border-top: 1px solid #ebeef5;
-  background-color: #fafafa;
-  line-height: 1.7;
 }
 
 .main-content-wrapper {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background-color: #f5f7fa;
+  background-color: #f8fafc;
   min-height: 0;
-  padding-left: 0;
+  height: 100%;
 }
+
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   font-size: 15px;
-  color: #303133;
+  color: #4a5568;
+  font-weight: 500;
 }
+
 .lang-btn {
   margin-left: 8px;
   border-radius: 8px;
-  padding: 2px 14px;
+  padding: 4px 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #4a5568;
 }
+
+.lang-btn:hover {
+  background: #f0f7ff;
+  color: #409EFF;
+  border-color: #409EFF;
+  transform: translateY(-1px);
+}
+
 .content-body {
-  padding: 16px;
-  background-color: #f5f7fa;
+  padding: 24px;
+  background-color: #f8fafc;
   flex-grow: 1;
   overflow-y: auto;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 自定义滚动条样式 */
+.content-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.content-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.content-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.content-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>
