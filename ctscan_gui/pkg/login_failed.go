@@ -1,9 +1,11 @@
 package pkg
 
 import (
+	"encoding/json"
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -16,6 +18,7 @@ type LoginFailed struct {
 	Source    string `json:"source"`
 	Username  string `json:"username"`
 	IPAddress string `json:"ip_address"`
+	Reason    string `json:"reason"`
 }
 
 func (a *App) GetLoginFailedRecords() []LoginFailed {
@@ -36,16 +39,90 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 			records = append(records, LoginFailed{Time: line[:15]})
 		}
 	case "darwin":
-		out, err := exec.Command("log", "show", "--predicate", "eventMessage CONTAINS 'Failed login'", "--info", "--last", "1d").CombinedOutput()
-		if err != nil {
-			return records
+		// 使用多个条件组合查询，确保能捕获所有登录失败情况
+		predicates := []string{
+			"eventMessage CONTAINS 'Failed to authenticate'",
+			"eventMessage CONTAINS 'authentication failed'",
+			"eventMessage CONTAINS 'password check failed'",
+			"eventMessage CONTAINS 'login failed'",
+			"eventMessage CONTAINS 'authentication error'",
 		}
-		lines := strings.Split(string(out), "\n")
-		for _, line := range lines {
-			if line == "" {
+		
+		var allRecords []LoginFailed
+		for _, predicate := range predicates {
+			out, err := exec.Command("log", "show", "--predicate", predicate, "--info", "--last", "7d", "--style", "json").CombinedOutput()
+			if err != nil {
 				continue
 			}
-			records = append(records, LoginFailed{Time: line})
+			
+			// 解析 JSON 输出
+			var logEntries []struct {
+				Timestamp string `json:"timestamp"`
+				EventMessage string `json:"eventMessage"`
+			}
+			
+			if err := json.Unmarshal(out, &logEntries); err != nil {
+				continue
+			}
+			
+			for _, entry := range logEntries {
+				// 解析时间戳
+				timestamp, err := time.Parse(time.RFC3339, entry.Timestamp)
+				if err != nil {
+					continue
+				}
+				
+				// 解析用户名和失败原因
+				message := entry.EventMessage
+				username := ""
+				reason := ""
+				
+				// 提取用户名
+				if strings.Contains(message, "for user") {
+					parts := strings.Split(message, "for user")
+					if len(parts) > 1 {
+						username = strings.TrimSpace(parts[1])
+					}
+				} else if strings.Contains(message, "user:") {
+					parts := strings.Split(message, "user:")
+					if len(parts) > 1 {
+						username = strings.TrimSpace(parts[1])
+					}
+				}
+				
+				// 提取失败原因
+				if strings.Contains(message, "reason:") {
+					parts := strings.Split(message, "reason:")
+					if len(parts) > 1 {
+						reason = strings.TrimSpace(parts[1])
+					}
+				} else {
+					// 如果没有明确的原因，使用消息本身作为原因
+					reason = message
+				}
+				
+				record := LoginFailed{
+					Time:      timestamp.Format("2006-01-02 15:04:05"),
+					EventID:   "4625",
+					EventType: "登录失败",
+					Source:    "System",
+					Username:  username,
+					IPAddress: "本地",
+					Reason:    reason,
+				}
+				
+				allRecords = append(allRecords, record)
+			}
+		}
+		
+		// 去重
+		seen := make(map[string]bool)
+		for _, record := range allRecords {
+			key := record.Time + record.Username + record.Reason
+			if !seen[key] {
+				seen[key] = true
+				records = append(records, record)
+			}
 		}
 	}
 	return records

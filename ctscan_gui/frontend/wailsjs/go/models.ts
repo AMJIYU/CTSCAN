@@ -59,6 +59,7 @@ export namespace pkg {
 	    source: string;
 	    username: string;
 	    ip_address: string;
+	    reason: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new LoginFailed(source);
@@ -72,6 +73,7 @@ export namespace pkg {
 	        this.source = source["source"];
 	        this.username = source["username"];
 	        this.ip_address = source["ip_address"];
+	        this.reason = source["reason"];
 	    }
 	}
 	export class LoginSuccess {

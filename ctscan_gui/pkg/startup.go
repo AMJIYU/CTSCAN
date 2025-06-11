@@ -45,6 +45,8 @@ func (a *App) getMacStartupItems() []StartupItem {
 	}{
 		{"/Library/LaunchAgents", "LaunchAgent"},
 		{"/Library/LaunchDaemons", "LaunchDaemon"},
+		{"/System/Library/LaunchAgents", "SystemLaunchAgent"},
+		{"/System/Library/LaunchDaemons", "SystemLaunchDaemon"},
 		{filepath.Join(os.Getenv("HOME"), "Library/LaunchAgents"), "UserLaunchAgent"},
 	}
 
