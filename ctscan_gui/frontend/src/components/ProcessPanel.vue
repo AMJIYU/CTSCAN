@@ -25,6 +25,7 @@ const pageSize = ref(10)
 const total = ref(0)
 const sortProp = ref('cpu_percent')
 const sortOrder = ref('descending')
+const loading = ref(false)
 
 // 复制路径到剪贴板
 const copyPath = async (path: string) => {
@@ -83,9 +84,12 @@ const currentPageData = computed(() => {
 })
 
 const refresh = () => {
+  loading.value = true
   GetAllProcesses().then(list => {
     processes.value = list
     total.value = list.length
+  }).finally(() => {
+    loading.value = false
   })
 }
 
@@ -105,6 +109,9 @@ defineExpose({ refresh })
     </div>
 
     <el-table 
+      v-loading="loading"
+      element-loading-text="正在加载进程信息..."
+      element-loading-background="rgba(255, 255, 255, 0.9)"
       :data="currentPageData" 
       style="width: 100%" 
       border
@@ -485,5 +492,22 @@ defineExpose({ refresh })
 
 :deep(.el-table__column-resize-handle:hover) {
   background-color: #66b1ff;
+}
+
+:deep(.el-loading-mask) {
+  backdrop-filter: blur(2px);
+}
+
+:deep(.el-loading-spinner) {
+  .el-loading-text {
+    color: #409EFF;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  
+  .circular {
+    width: 30px;
+    height: 30px;
+  }
 }
 </style> 
