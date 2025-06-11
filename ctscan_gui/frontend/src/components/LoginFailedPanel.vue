@@ -7,18 +7,20 @@
           <tr>
             <th>时间</th>
             <th>事件ID</th>
+            <th>事件类型</th>
+            <th>来源</th>
             <th>用户名</th>
-            <th>来源IP</th>
-            <th>失败原因</th>
+            <th>IP地址</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="record in records" :key="record.time">
             <td>{{ record.time }}</td>
             <td>{{ record.event_id }}</td>
+            <td>{{ record.event_type }}</td>
+            <td>{{ record.source }}</td>
             <td>{{ record.username }}</td>
-            <td>{{ record.source_ip }}</td>
-            <td>{{ record.failure_reason }}</td>
+            <td>{{ record.ip_address }}</td>
           </tr>
         </tbody>
       </table>

@@ -55,14 +55,10 @@ export namespace pkg {
 	export class LoginFailed {
 	    time: string;
 	    event_id: string;
-	    login_type: string;
-	    source_ip: string;
+	    event_type: string;
+	    source: string;
 	    username: string;
-	    workstation: string;
-	    subject_user: string;
-	    subject_domain: string;
-	    process: string;
-	    failure_reason: string;
+	    ip_address: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new LoginFailed(source);
@@ -72,26 +68,19 @@ export namespace pkg {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.time = source["time"];
 	        this.event_id = source["event_id"];
-	        this.login_type = source["login_type"];
-	        this.source_ip = source["source_ip"];
+	        this.event_type = source["event_type"];
+	        this.source = source["source"];
 	        this.username = source["username"];
-	        this.workstation = source["workstation"];
-	        this.subject_user = source["subject_user"];
-	        this.subject_domain = source["subject_domain"];
-	        this.process = source["process"];
-	        this.failure_reason = source["failure_reason"];
+	        this.ip_address = source["ip_address"];
 	    }
 	}
 	export class LoginSuccess {
 	    time: string;
 	    event_id: string;
-	    login_type: string;
-	    source_ip: string;
+	    event_type: string;
+	    source: string;
 	    username: string;
-	    workstation: string;
-	    subject_user: string;
-	    subject_domain: string;
-	    process: string;
+	    ip_address: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new LoginSuccess(source);
@@ -101,13 +90,10 @@ export namespace pkg {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.time = source["time"];
 	        this.event_id = source["event_id"];
-	        this.login_type = source["login_type"];
-	        this.source_ip = source["source_ip"];
+	        this.event_type = source["event_type"];
+	        this.source = source["source"];
 	        this.username = source["username"];
-	        this.workstation = source["workstation"];
-	        this.subject_user = source["subject_user"];
-	        this.subject_domain = source["subject_domain"];
-	        this.process = source["process"];
+	        this.ip_address = source["ip_address"];
 	    }
 	}
 	export class NetworkConn {
@@ -168,20 +154,24 @@ export namespace pkg {
 		    return a;
 		}
 	}
-	export class PatchInfo {
-	    name: string;
-	    date: string;
+	export class Patch {
+	    time: string;
+	    title: string;
+	    description: string;
 	    status: string;
+	    kb: string;
 	
 	    static createFrom(source: any = {}) {
-	        return new PatchInfo(source);
+	        return new Patch(source);
 	    }
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.name = source["name"];
-	        this.date = source["date"];
+	        this.time = source["time"];
+	        this.title = source["title"];
+	        this.description = source["description"];
 	        this.status = source["status"];
+	        this.kb = source["kb"];
 	    }
 	}
 	export class ProcInfo {

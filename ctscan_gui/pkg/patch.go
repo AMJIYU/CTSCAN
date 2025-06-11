@@ -1,144 +1,133 @@
 package pkg
 
 import (
+	"fmt"
 	"os/exec"
 	"runtime"
 	"strings"
-	"time"
+
+	"github.com/go-ole/go-ole"
+	"github.com/go-ole/go-ole/oleutil"
 )
 
-type PatchInfo struct {
-	Name   string `json:"name"`
-	Date   string `json:"date"`
-	Status string `json:"status"`
+type Patch struct {
+	Time        string `json:"time"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Status      string `json:"status"`
+	KB          string `json:"kb"`
 }
 
-func (a *App) GetPatchInfo() []PatchInfo {
+func (a *App) GetPatchRecords() []Patch {
+	records := []Patch{}
 	switch runtime.GOOS {
 	case "windows":
-		return a.getWindowsPatches()
+		records = a.getWindowsPatchRecords()
 	case "linux":
-		return a.getLinuxPatches()
+		out, err := exec.Command("grep", "upgrade", "/var/log/apt/history.log").CombinedOutput()
+		if err != nil {
+			return records
+		}
+		lines := strings.Split(string(out), "\n")
+		for _, line := range lines {
+			if line == "" {
+				continue
+			}
+			records = append(records, Patch{Time: line[:15]})
+		}
 	case "darwin":
-		return a.getMacOSPatches()
-	default:
-		return nil
+		out, err := exec.Command("softwareupdate", "--history").CombinedOutput()
+		if err != nil {
+			return records
+		}
+		lines := strings.Split(string(out), "\n")
+		for _, line := range lines {
+			if line == "" {
+				continue
+			}
+			records = append(records, Patch{Time: line})
+		}
 	}
+	return records
 }
 
-func (a *App) getWindowsPatches() []PatchInfo {
-	// PowerShell命令获取Windows Update历史
-	cmd := `Get-HotFix | Select-Object HotFixID, InstalledOn, Description | Format-List`
-	out, err := exec.Command("powershell", "-Command", cmd).CombinedOutput()
+func (a *App) getWindowsPatchRecords() []Patch {
+	if runtime.GOOS != "windows" {
+		return nil
+	}
+
+	ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
+	defer ole.CoUninitialize()
+
+	unknown, err := oleutil.CreateObject("WbemScripting.SWbemLocator")
 	if err != nil {
 		return nil
 	}
+	defer unknown.Release()
 
-	var patches []PatchInfo
-	lines := strings.Split(string(out), "\n")
-	var currentPatch PatchInfo
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			if currentPatch.Name != "" {
-				patches = append(patches, currentPatch)
-				currentPatch = PatchInfo{}
-			}
-			continue
-		}
-
-		if strings.HasPrefix(line, "HotFixID") {
-			currentPatch.Name = strings.TrimSpace(strings.TrimPrefix(line, "HotFixID :"))
-		} else if strings.HasPrefix(line, "InstalledOn") {
-			dateStr := strings.TrimSpace(strings.TrimPrefix(line, "InstalledOn :"))
-			if t, err := time.Parse("1/2/2006 3:04:05 PM", dateStr); err == nil {
-				currentPatch.Date = t.Format("2006-01-02 15:04:05")
-			}
-		} else if strings.HasPrefix(line, "Description") {
-			currentPatch.Status = strings.TrimSpace(strings.TrimPrefix(line, "Description :"))
-		}
-	}
-
-	if currentPatch.Name != "" {
-		patches = append(patches, currentPatch)
-	}
-
-	return patches
-}
-
-func (a *App) getLinuxPatches() []PatchInfo {
-	var patches []PatchInfo
-
-	// 尝试使用 apt 命令（Debian/Ubuntu）
-	aptCmd := `apt-history list | grep -E "^(Start-Date|Commandline)" | grep -v "apt-history"`
-	aptOut, err := exec.Command("bash", "-c", aptCmd).CombinedOutput()
-	if err == nil {
-		lines := strings.Split(string(aptOut), "\n")
-		var currentPatch PatchInfo
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, "Start-Date") {
-				if currentPatch.Name != "" {
-					patches = append(patches, currentPatch)
-				}
-				dateStr := strings.TrimSpace(strings.TrimPrefix(line, "Start-Date:"))
-				if t, err := time.Parse("2006-01-02 15:04:05", dateStr); err == nil {
-					currentPatch.Date = t.Format("2006-01-02 15:04:05")
-				}
-			} else if strings.HasPrefix(line, "Commandline") {
-				currentPatch.Name = strings.TrimSpace(strings.TrimPrefix(line, "Commandline:"))
-				currentPatch.Status = "已安装"
-			}
-		}
-		if currentPatch.Name != "" {
-			patches = append(patches, currentPatch)
-		}
-		return patches
-	}
-
-	// 尝试使用 yum 命令（RHEL/CentOS）
-	yumCmd := `yum history list | grep -E "^[0-9]" | head -n 10`
-	yumOut, err := exec.Command("bash", "-c", yumCmd).CombinedOutput()
-	if err == nil {
-		lines := strings.Split(string(yumOut), "\n")
-		for _, line := range lines {
-			fields := strings.Fields(line)
-			if len(fields) >= 3 {
-				patches = append(patches, PatchInfo{
-					Name:   fields[2],
-					Date:   fields[1],
-					Status: "已安装",
-				})
-			}
-		}
-		return patches
-	}
-
-	return nil
-}
-
-func (a *App) getMacOSPatches() []PatchInfo {
-	out, err := exec.Command("softwareupdate", "--history").Output()
+	locator, err := unknown.QueryInterface(ole.IID_IDispatch)
 	if err != nil {
 		return nil
 	}
-	lines := strings.Split(string(out), "\n")
-	var patches []PatchInfo
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "Name") || strings.HasPrefix(line, "-") {
-			continue
-		}
-		fields := strings.Fields(line)
-		if len(fields) < 4 {
-			continue
-		}
-		patches = append(patches, PatchInfo{
-			Name:   fields[0],
-			Date:   fields[len(fields)-2],
-			Status: fields[len(fields)-1],
-		})
+	defer locator.Release()
+
+	// 连接到本地 WMI
+	service, err := oleutil.CallMethod(locator, "ConnectServer", ".", "root\\cimv2")
+	if err != nil {
+		return nil
 	}
-	return patches
+	defer service.ToIDispatch().Release()
+
+	// 查询 Windows Update 历史记录
+	query := "SELECT * FROM Win32_QuickFixEngineering ORDER BY InstalledOn DESC"
+	updates, err := oleutil.CallMethod(service.ToIDispatch(), "ExecQuery", query)
+	if err != nil {
+		return nil
+	}
+	defer updates.ToIDispatch().Release()
+
+	// 获取更新数量
+	count, err := oleutil.GetProperty(updates.ToIDispatch(), "Count")
+	if err != nil {
+		return nil
+	}
+	defer count.Clear()
+
+	var records []Patch
+	for i := 0; i < int(count.Val); i++ {
+		update, err := oleutil.CallMethod(updates.ToIDispatch(), "ItemIndex", i)
+		if err != nil {
+			continue
+		}
+		defer update.ToIDispatch().Release()
+
+		// 获取更新详细信息
+		installedOn, _ := oleutil.GetProperty(update.ToIDispatch(), "InstalledOn")
+		hotFixID, _ := oleutil.GetProperty(update.ToIDispatch(), "HotFixID")
+		description, _ := oleutil.GetProperty(update.ToIDispatch(), "Description")
+		installedBy, _ := oleutil.GetProperty(update.ToIDispatch(), "InstalledBy")
+
+		// 提取 KB 编号
+		kb := ""
+		if hotFixID != nil {
+			kb = strings.TrimPrefix(hotFixID.ToString(), "KB")
+		}
+
+		record := Patch{
+			Time:        installedOn.ToString(),
+			Title:       description.ToString(),
+			Description: fmt.Sprintf("Installed by: %s", installedBy.ToString()),
+			Status:      "Installed",
+			KB:          kb,
+		}
+
+		records = append(records, record)
+
+		installedOn.Clear()
+		hotFixID.Clear()
+		description.Clear()
+		installedBy.Clear()
+	}
+
+	return records
 }

@@ -23,15 +23,64 @@ onMounted(() => {
 defineExpose({ refresh })
 </script>
 <template>
-  <el-table :data="records" style="width: 100%">
-    <el-table-column prop="time" label="时间" />
-    <el-table-column prop="event_id" label="事件ID" />
-    <el-table-column prop="login_type" label="登入类型" />
-    <el-table-column prop="source_ip" label="源IP" />
-    <el-table-column prop="username" label="用户名" />
-    <el-table-column prop="workstation" label="工作站" />
-    <el-table-column prop="subject_user" label="主体用户名" />
-    <el-table-column prop="subject_domain" label="主体域" />
-    <el-table-column prop="process" label="进程" />
-  </el-table>
-</template> 
+  <div class="login-success-panel">
+    <h2>登录成功记录</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>时间</th>
+            <th>事件ID</th>
+            <th>事件类型</th>
+            <th>来源</th>
+            <th>用户名</th>
+            <th>IP地址</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="record in records" :key="record.time">
+            <td>{{ record.time }}</td>
+            <td>{{ record.event_id }}</td>
+            <td>{{ record.event_type }}</td>
+            <td>{{ record.source }}</td>
+            <td>{{ record.username }}</td>
+            <td>{{ record.ip_address }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.login-success-panel {
+  padding: 20px;
+}
+
+.table-container {
+  margin-top: 20px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+tr:hover {
+  background-color: #f9f9f9;
+}
+</style> 
