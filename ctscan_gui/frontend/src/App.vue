@@ -19,14 +19,10 @@ const activeMenu = ref('overview');
     <div class="app-menubar">
       <div class="menubar-left">
         <span class="logo">CT<span>Scan</span></span>
-        <span class="menu-item">编辑</span>
-        <span class="menu-item">视图</span>
-        <span class="menu-item">窗口</span>
-        <span class="menu-item">帮助</span>
       </div>
       <div class="menubar-right">
         <div class="header-right">
-          你好, 欢迎使用 CTScan!
+          <span class="welcome-text">你好, 欢迎使用 CTScan!</span>
           <el-button size="small" class="lang-btn">En</el-button>
         </div>
       </div>
@@ -48,84 +44,55 @@ const activeMenu = ref('overview');
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f8fafc;
+  background: linear-gradient(135deg, #f6f8fc 0%, #f1f5f9 100%);
 }
 
 .app-menubar {
-  height: 68px;
-  background: #ffffff;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 40px;
+  padding: 0 32px;
   font-size: 14px;
   user-select: none;
   position: relative;
   z-index: 10;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .menubar-left {
   display: flex;
   align-items: center;
-  gap: 40px;
 }
 
 .logo {
   font-weight: 700;
-  font-size: 22px;
+  font-size: 20px;
   color: #1a202c;
-  margin-right: 40px;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
   position: relative;
 }
 
 .logo span {
   color: #409EFF;
-}
-
-.menu-item {
-  color: #4a5568;
-  cursor: pointer;
-  padding: 6px 0;
-  font-weight: 500;
-  position: relative;
-  transition: color 0.2s ease;
-}
-
-.menu-item::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: #409EFF;
-  transform: scaleX(0);
-  transition: transform 0.2s ease;
-  transform-origin: right;
-}
-
-.menu-item:hover {
-  color: #409EFF;
-}
-
-.menu-item:hover::after {
-  transform: scaleX(1);
-  transform-origin: left;
+  font-weight: 800;
 }
 
 .main-container {
   flex: 1;
-  height: calc(100vh - 68px);
-  background-color: #f8fafc;
+  height: calc(100vh - 48px);
+  background: transparent;
   position: relative;
+  padding: 24px;
 }
 
 .main-content-wrapper {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background-color: #f8fafc;
+  background: transparent;
   min-height: 0;
   height: 100%;
 }
@@ -133,8 +100,13 @@ const activeMenu = ref('overview');
 .header-right {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
   font-size: 14px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.welcome-text {
   color: #4a5568;
   font-weight: 500;
 }
@@ -143,38 +115,23 @@ const activeMenu = ref('overview');
   margin-left: 8px;
   padding: 4px 12px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   background: transparent;
   color: #4a5568;
-  border: none;
-  position: relative;
-}
-
-.lang-btn::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: #409EFF;
-  transform: scaleX(0);
-  transition: transform 0.2s ease;
-  transform-origin: right;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
 }
 
 .lang-btn:hover {
   color: #409EFF;
-}
-
-.lang-btn:hover::after {
-  transform: scaleX(1);
-  transform-origin: left;
+  border-color: #409EFF;
+  background: rgba(64, 158, 255, 0.05);
 }
 
 .content-body {
-  padding: 32px;
-  background-color: #f8fafc;
+  padding: 0;
+  background: transparent;
   flex-grow: 1;
   overflow-y: auto;
   max-width: 1600px;
@@ -184,8 +141,8 @@ const activeMenu = ref('overview');
 
 /* 自定义滚动条样式 */
 .content-body::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .content-body::-webkit-scrollbar-track {
@@ -194,7 +151,7 @@ const activeMenu = ref('overview');
 
 .content-body::-webkit-scrollbar-thumb {
   background: #e2e8f0;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: all 0.3s ease;
 }
 

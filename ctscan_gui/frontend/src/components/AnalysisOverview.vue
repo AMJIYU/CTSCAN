@@ -111,7 +111,7 @@ const refreshInfo = () => {
 .overview-container {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 32px;
   background: transparent;
   padding: 0;
 }
@@ -126,16 +126,18 @@ const refreshInfo = () => {
 }
 
 .action-card {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
 .action-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 24px rgba(64, 158, 255, 0.12);
+  border-color: rgba(64, 158, 255, 0.2);
 }
 
 .card-content {
@@ -207,11 +209,11 @@ const refreshInfo = () => {
   padding: 16px 36px;
   font-size: 16px;
   color: #4a5568;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   font-weight: 600;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   letter-spacing: 0.3px;
   position: relative;
   overflow: hidden;
@@ -219,10 +221,11 @@ const refreshInfo = () => {
 
 :deep(.detail-tabs .el-tabs__item:hover),
 :deep(.log-tabs .el-tabs__item:hover) {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98);
   color: #409EFF !important;
   transform: translateY(-2px);
   box-shadow: 0 8px 16px rgba(64, 158, 255, 0.08);
+  border-color: rgba(64, 158, 255, 0.2);
 }
 
 :deep(.detail-tabs .el-tabs__item.is-active),
@@ -232,16 +235,19 @@ const refreshInfo = () => {
   font-weight: 600;
   box-shadow: 0 8px 20px rgba(64, 158, 255, 0.15);
   transform: translateY(-2px);
+  border-color: transparent;
 }
 
 :deep(.detail-tabs .el-tabs__content),
 :deep(.log-tabs .el-tabs__content) {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 24px;
   padding: 40px;
   min-height: 200px;
   margin: 0 16px 16px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
 :deep(.detail-tabs .el-tabs__nav-wrap::after) {

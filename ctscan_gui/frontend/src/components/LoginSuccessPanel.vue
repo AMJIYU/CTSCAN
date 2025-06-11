@@ -54,33 +54,48 @@ defineExpose({ refresh })
 
 <style scoped>
 .login-success-panel {
-  padding: 20px;
+  padding: 0;
 }
 
 .table-container {
-  margin-top: 20px;
+  margin-top: 24px;
   overflow-x: auto;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
-  background-color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: transparent;
 }
 
 th, td {
-  padding: 12px;
+  padding: 16px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 14px;
 }
 
 th {
-  background-color: #f5f5f5;
+  background-color: rgba(0, 0, 0, 0.02);
   font-weight: 600;
+  color: #1a202c;
+  white-space: nowrap;
+}
+
+td {
+  color: #4a5568;
 }
 
 tr:hover {
-  background-color: #f9f9f9;
+  background-color: rgba(64, 158, 255, 0.05);
+}
+
+tr:last-child td {
+  border-bottom: none;
 }
 </style> 

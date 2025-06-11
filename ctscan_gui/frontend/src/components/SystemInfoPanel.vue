@@ -96,27 +96,74 @@ defineExpose({ refresh })
 
 <style scoped>
 .disk-info {
-  padding: 10px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
 }
 
 .disk-info h4 {
-  margin: 0 0 10px 0;
-  color: #409EFF;
+  margin: 0 0 16px 0;
+  color: #1a202c;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .disk-details {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  gap: 16px;
 }
 
 .disk-details > div {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  color: #4a5568;
+  font-size: 14px;
 }
 
 .disk-details > div:last-child {
   grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+:deep(.el-descriptions) {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+:deep(.el-descriptions__title) {
+  color: #1a202c;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+:deep(.el-descriptions__label) {
+  color: #4a5568;
+  font-weight: 500;
+}
+
+:deep(.el-descriptions__content) {
+  color: #1a202c;
+}
+
+:deep(.el-progress-bar__outer) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+:deep(.el-progress-bar__inner) {
+  transition: all 0.3s ease;
+}
+
+:deep(.el-divider) {
+  margin: 32px 0;
+  border-color: rgba(0, 0, 0, 0.05);
 }
 </style> 
