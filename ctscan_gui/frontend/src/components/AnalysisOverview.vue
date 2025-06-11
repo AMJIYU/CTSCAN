@@ -6,7 +6,6 @@ import NetworkInfoPanel from './NetworkInfoPanel.vue'
 import StartupPanel from './StartupPanel.vue'
 import CronTaskPanel from './CronTaskPanel.vue'
 import ProcessPanel from './ProcessPanel.vue'
-import PatchPanel from './PatchPanel.vue'
 import LoginSuccessPanel from './LoginSuccessPanel.vue'
 
 // 使用ref引用每个选项卡组件
@@ -73,9 +72,7 @@ const refreshInfo = () => {
         <el-tab-pane label="系统基本信息">
           <SystemInfoPanel ref="systemInfoRef" />
         </el-tab-pane>
-        <el-tab-pane label="系统补丁信息">
-          <PatchPanel ref="patchRef" />
-        </el-tab-pane>
+        
         <el-tab-pane label="用户">
           <UserInfoPanel ref="userInfoRef" />
         </el-tab-pane>

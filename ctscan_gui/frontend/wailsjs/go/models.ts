@@ -154,26 +154,6 @@ export namespace pkg {
 		    return a;
 		}
 	}
-	export class Patch {
-	    time: string;
-	    title: string;
-	    description: string;
-	    status: string;
-	    kb: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new Patch(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.time = source["time"];
-	        this.title = source["title"];
-	        this.description = source["description"];
-	        this.status = source["status"];
-	        this.kb = source["kb"];
-	    }
-	}
 	export class ProcInfo {
 	    pid: number;
 	    name: string;

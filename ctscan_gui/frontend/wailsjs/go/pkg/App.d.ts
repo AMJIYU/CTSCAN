@@ -16,8 +16,6 @@ export function GetNetworkConnections():Promise<Array<pkg.NetworkConn>>;
 
 export function GetNetworkInfo():Promise<pkg.NetworkInfo>;
 
-export function GetPatchRecords():Promise<Array<pkg.Patch>>;
-
 export function GetStartupItems():Promise<Array<pkg.StartupItem>>;
 
 export function GetSystemInfo():Promise<pkg.SystemInfo>;

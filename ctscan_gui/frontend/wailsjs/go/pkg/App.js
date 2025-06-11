@@ -30,10 +30,6 @@ export function GetNetworkInfo() {
   return window['go']['pkg']['App']['GetNetworkInfo']();
 }
 
-export function GetPatchRecords() {
-  return window['go']['pkg']['App']['GetPatchRecords']();
-}
-
 export function GetStartupItems() {
   return window['go']['pkg']['App']['GetStartupItems']();
 }
