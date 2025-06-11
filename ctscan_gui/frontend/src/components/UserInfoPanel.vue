@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { GetUserInfo, GetAllUsers } from '../../wailsjs/go/pkg/App'
 import { User, UserFilled, CopyDocument } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -18,11 +18,45 @@ const pageSize = ref(10)
 const total = ref(0)
 const loading = ref(false)
 
+// 筛选条件
+const filters = ref({
+  username: '',
+  uid: '',
+  gid: '',
+  home_dir: '',
+  name: ''
+})
+
+// 重置筛选条件
+const resetFilters = () => {
+  filters.value = {
+    username: '',
+    uid: '',
+    gid: '',
+    home_dir: '',
+    name: ''
+  }
+  currentPage.value = 1
+}
+
+// 筛选后的数据
+const filteredUsers = computed(() => {
+  return allUsers.value.filter(user => {
+    return (
+      (!filters.value.username || user.username.toLowerCase().includes(filters.value.username.toLowerCase())) &&
+      (!filters.value.uid || user.uid.toLowerCase().includes(filters.value.uid.toLowerCase())) &&
+      (!filters.value.gid || user.gid.toLowerCase().includes(filters.value.gid.toLowerCase())) &&
+      (!filters.value.home_dir || user.home_dir.toLowerCase().includes(filters.value.home_dir.toLowerCase())) &&
+      (!filters.value.name || user.name.toLowerCase().includes(filters.value.name.toLowerCase()))
+    )
+  })
+})
+
 // 计算当前页的数据
 const currentPageData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
-  return allUsers.value.slice(start, end)
+  return filteredUsers.value.slice(start, end)
 })
 
 const handleCurrentChange = (val: number) => {
@@ -70,6 +104,14 @@ const copyPath = async (path: string) => {
   }
 }
 
+// 监听筛选条件变化
+watch(filters, () => {
+  total.value = filteredUsers.value.length
+  if (currentPage.value > Math.ceil(total.value / pageSize.value)) {
+    currentPage.value = 1
+  }
+}, { deep: true })
+
 onMounted(() => {
   refresh()
 })
@@ -103,6 +145,14 @@ defineExpose({ refresh })
         <el-icon :size="20" color="#409EFF"><UserFilled /></el-icon>
         <h3>系统用户列表</h3>
         <span class="total-count">共 {{ total }} 个用户</span>
+        <el-button 
+          type="primary" 
+          link 
+          @click="resetFilters"
+          class="reset-button"
+        >
+          重置筛选
+        </el-button>
       </div>
       <el-table 
         v-loading="loading"
@@ -120,6 +170,17 @@ defineExpose({ refresh })
           min-width="120"
           resizable
         >
+          <template #header>
+            <div class="table-header">
+              <span>用户名</span>
+              <el-input
+                v-model="filters.username"
+                placeholder="筛选用户名"
+                size="small"
+                clearable
+              />
+            </div>
+          </template>
           <template #default="{ row }">
             <div class="user-cell">
               <el-icon><User /></el-icon>
@@ -133,14 +194,38 @@ defineExpose({ refresh })
           min-width="80"
           align="center"
           resizable
-        />
+        >
+          <template #header>
+            <div class="table-header">
+              <span>UID</span>
+              <el-input
+                v-model="filters.uid"
+                placeholder="筛选UID"
+                size="small"
+                clearable
+              />
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column 
           prop="gid" 
           label="GID" 
           min-width="80"
           align="center"
           resizable
-        />
+        >
+          <template #header>
+            <div class="table-header">
+              <span>GID</span>
+              <el-input
+                v-model="filters.gid"
+                placeholder="筛选GID"
+                size="small"
+                clearable
+              />
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column 
           prop="home_dir" 
           label="家目录" 
@@ -148,6 +233,17 @@ defineExpose({ refresh })
           resizable
           show-overflow-tooltip
         >
+          <template #header>
+            <div class="table-header">
+              <span>家目录</span>
+              <el-input
+                v-model="filters.home_dir"
+                placeholder="筛选家目录"
+                size="small"
+                clearable
+              />
+            </div>
+          </template>
           <template #default="{ row }">
             <div class="path-cell">
               <span class="path-value">{{ row.home_dir }}</span>
@@ -168,7 +264,19 @@ defineExpose({ refresh })
           min-width="150"
           resizable
           show-overflow-tooltip
-        />
+        >
+          <template #header>
+            <div class="table-header">
+              <span>显示名</span>
+              <el-input
+                v-model="filters.name"
+                placeholder="筛选显示名"
+                size="small"
+                clearable
+              />
+            </div>
+          </template>
+        </el-table-column>
       </el-table>
 
       <div class="pagination-container">
@@ -368,5 +476,20 @@ defineExpose({ refresh })
 
 :deep(.el-table__empty-block) {
   background: transparent;
+}
+
+.table-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.table-header span {
+  font-weight: bold;
+  color: #606266;
+}
+
+.reset-button {
+  margin-left: 16px;
 }
 </style> 
