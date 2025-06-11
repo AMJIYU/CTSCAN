@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { GetNetworkInfo, GetNetworkConnections } from '../../wailsjs/go/pkg/App'
-import { Monitor, Connection, DataLine, CopyDocument } from '@element-plus/icons-vue'
+import { Monitor, Connection, DataLine, CopyDocument, Filter } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 interface InterfaceStats {
@@ -29,6 +29,73 @@ const networkInfo = ref<NetworkInfo>({
 })
 
 const connections = ref<{ proto: string; local_addr: string; remote_addr: string; status: string; pid: number }[]>([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const loading = ref(false)
+
+// 筛选条件
+const filters = ref({
+  proto: '',
+  local_addr: '',
+  remote_addr: '',
+  status: '',
+  pid: ''
+})
+
+// 重置筛选条件
+const resetFilters = () => {
+  filters.value = {
+    proto: '',
+    local_addr: '',
+    remote_addr: '',
+    status: '',
+    pid: ''
+  }
+  currentPage.value = 1
+}
+
+// 筛选后的数据
+const filteredConnections = computed(() => {
+  return connections.value.filter(conn => {
+    return (
+      (!filters.value.proto || conn.proto.toLowerCase().includes(filters.value.proto.toLowerCase())) &&
+      (!filters.value.local_addr || conn.local_addr.toLowerCase().includes(filters.value.local_addr.toLowerCase())) &&
+      (!filters.value.remote_addr || conn.remote_addr.toLowerCase().includes(filters.value.remote_addr.toLowerCase())) &&
+      (!filters.value.status || conn.status.toLowerCase().includes(filters.value.status.toLowerCase())) &&
+      (!filters.value.pid || conn.pid.toString().includes(filters.value.pid))
+    )
+  })
+})
+
+// 计算当前页的数据
+const currentPageData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredConnections.value.slice(start, end)
+})
+
+// 更新总数
+const updateTotal = () => {
+  total.value = filteredConnections.value.length
+  if (currentPage.value > Math.ceil(total.value / pageSize.value)) {
+    currentPage.value = 1
+  }
+}
+
+const handleCurrentChange = (val: number) => {
+  currentPage.value = val
+}
+
+const handleSizeChange = (val: number) => {
+  pageSize.value = val
+  currentPage.value = 1
+}
+
+// 监听筛选条件变化
+watch(filters, () => {
+  updateTotal()
+}, { deep: true })
 
 // 计算是否有流量统计
 const hasTrafficStats = computed(() => {
@@ -46,6 +113,7 @@ const activeInterfaceStats = computed(() => {
 
 // 添加 refresh 方法，用于重新获取网络信息
 const refresh = async () => {
+  loading.value = true
   try {
     const [info, conns] = await Promise.all([
       GetNetworkInfo(),
@@ -53,8 +121,11 @@ const refresh = async () => {
     ])
     networkInfo.value = info
     connections.value = conns
+    updateTotal()
   } catch (error) {
     console.error('获取网络信息失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -100,13 +171,29 @@ defineExpose({ refresh })
               <span>{{ iface }}</span>
             </div>
             <div class="interface-details">
-              <template v-if="networkInfo.ips[index]">
-                <span class="label">IP</span>
-                <span class="value ip-tag">{{ networkInfo.ips[index] }}</span>
-              </template>
-              <template v-if="networkInfo.macs[index]">
-                <span class="label">MAC</span>
-                <span class="value mac-tag">{{ networkInfo.macs[index] }}</span>
+              <div class="basic-info">
+                <template v-if="networkInfo.ips[index]">
+                  <span class="label">IP</span>
+                  <span class="value ip-tag">{{ networkInfo.ips[index] }}</span>
+                </template>
+                <template v-if="networkInfo.macs[index]">
+                  <span class="label">MAC</span>
+                  <span class="value mac-tag">{{ networkInfo.macs[index] }}</span>
+                </template>
+              </div>
+              <template v-if="networkInfo.interface_stats[index]">
+                <div class="traffic-stats">
+                  <div class="traffic-item">
+                    <span class="label">发送</span>
+                    <span class="value">{{ (networkInfo.interface_stats[index].bytes_sent / 1024 / 1024).toFixed(2) }} MB</span>
+                    <span class="packets">{{ networkInfo.interface_stats[index].packets_sent }} 包</span>
+                  </div>
+                  <div class="traffic-item">
+                    <span class="label">接收</span>
+                    <span class="value">{{ (networkInfo.interface_stats[index].bytes_recv / 1024 / 1024).toFixed(2) }} MB</span>
+                    <span class="packets">{{ networkInfo.interface_stats[index].packets_recv }} 包</span>
+                  </div>
+                </div>
               </template>
             </div>
           </div>
@@ -114,48 +201,19 @@ defineExpose({ refresh })
       </div>
     </div>
 
-    <!-- 网卡流量统计 -->
-    <div class="info-card" v-if="hasTrafficStats">
-      <div class="card-header">
-        <el-icon :size="18" color="#409EFF"><DataLine /></el-icon>
-        <h3>网卡流量统计</h3>
-      </div>
-      <el-table :data="activeInterfaceStats" style="width: 100%" size="small">
-        <el-table-column prop="name" label="网卡名称" min-width="120">
-          <template #default="{ row }">
-            <div class="interface-name">
-              <el-icon><Connection /></el-icon>
-              <span>{{ row.name }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="发送流量" min-width="160">
-          <template #default="scope">
-            <div class="traffic-info">
-              <span class="traffic-value">{{ (scope.row.bytes_sent / 1024 / 1024).toFixed(2) }} MB</span>
-              <span class="traffic-packets">{{ scope.row.packets_sent }} 包</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="接收流量" min-width="160">
-          <template #default="scope">
-            <div class="traffic-info">
-              <span class="traffic-value">{{ (scope.row.bytes_recv / 1024 / 1024).toFixed(2) }} MB</span>
-              <span class="traffic-packets">{{ scope.row.packets_recv }} 包</span>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-
     <!-- 网络连接详情 -->
     <div class="info-card">
       <div class="card-header">
         <el-icon :size="18" color="#409EFF"><Connection /></el-icon>
         <h3>网络连接详情</h3>
+        <span class="total-count">共 {{ total }} 个连接</span>
       </div>
+
       <el-table 
-        :data="connections" 
+        v-loading="loading"
+        element-loading-text="正在加载网络连接信息..."
+        element-loading-background="rgba(255, 255, 255, 0.9)"
+        :data="currentPageData" 
         style="width: 100%" 
         size="small"
         border
@@ -168,6 +226,18 @@ defineExpose({ refresh })
           align="center"
           resizable
         >
+          <template #header>
+            <div class="column-header">
+              <span>协议</span>
+              <el-input
+                v-model="filters.proto"
+                placeholder="筛选"
+                clearable
+                size="small"
+                class="header-filter"
+              />
+            </div>
+          </template>
           <template #default="{ row }">
             <el-tag size="small" :type="row.proto === 'tcp' ? 'primary' : 'success'" class="proto-tag">
               {{ row.proto.toUpperCase() }}
@@ -181,6 +251,18 @@ defineExpose({ refresh })
           resizable
           show-overflow-tooltip
         >
+          <template #header>
+            <div class="column-header">
+              <span>本地地址</span>
+              <el-input
+                v-model="filters.local_addr"
+                placeholder="筛选"
+                clearable
+                size="small"
+                class="header-filter"
+              />
+            </div>
+          </template>
           <template #default="{ row }">
             <div class="address-cell">
               <span class="address-value">{{ row.local_addr }}</span>
@@ -202,6 +284,18 @@ defineExpose({ refresh })
           resizable
           show-overflow-tooltip
         >
+          <template #header>
+            <div class="column-header">
+              <span>远程地址</span>
+              <el-input
+                v-model="filters.remote_addr"
+                placeholder="筛选"
+                clearable
+                size="small"
+                class="header-filter"
+              />
+            </div>
+          </template>
           <template #default="{ row }">
             <div class="address-cell">
               <span class="address-value">{{ row.remote_addr }}</span>
@@ -223,6 +317,18 @@ defineExpose({ refresh })
           align="center"
           resizable
         >
+          <template #header>
+            <div class="column-header">
+              <span>状态</span>
+              <el-input
+                v-model="filters.status"
+                placeholder="筛选"
+                clearable
+                size="small"
+                class="header-filter"
+              />
+            </div>
+          </template>
           <template #default="{ row }">
             <el-tag :type="row.status === 'ESTABLISHED' ? 'success' : 'info'" size="small" class="status-tag">
               {{ row.status }}
@@ -236,11 +342,35 @@ defineExpose({ refresh })
           align="center"
           resizable
         >
+          <template #header>
+            <div class="column-header">
+              <span>PID</span>
+              <el-input
+                v-model="filters.pid"
+                placeholder="筛选"
+                clearable
+                size="small"
+                class="header-filter"
+              />
+            </div>
+          </template>
           <template #default="{ row }">
             <span class="pid-value">{{ row.pid }}</span>
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -303,15 +433,15 @@ defineExpose({ refresh })
 
 .interface-info {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .interface-name {
   display: flex;
   align-items: center;
   gap: 4px;
-  min-width: 120px;
+  min-width: 100px;
 }
 
 .interface-name .el-icon {
@@ -327,10 +457,15 @@ defineExpose({ refresh })
 
 .interface-details {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.basic-info {
+  display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
-  overflow-x: auto;
 }
 
 .interface-details .label {
@@ -356,48 +491,23 @@ defineExpose({ refresh })
   color: #67C23A;
 }
 
-:deep(.el-table) {
-  background: transparent;
-  border-radius: 6px;
-  overflow: hidden;
+.traffic-stats {
+  display: flex;
+  gap: 12px;
 }
 
-:deep(.el-table th) {
-  background-color: rgba(0, 0, 0, 0.02);
-  font-weight: 600;
-  color: #1a202c;
-  padding: 8px 0;
-  font-size: 13px;
-}
-
-:deep(.el-table td) {
-  color: #2d3748;
-  padding: 8px 0;
-  font-size: 13px;
-}
-
-:deep(.el-table .cell) {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
-:deep(.el-table tr:hover > td) {
-  background-color: rgba(64, 158, 255, 0.05);
-}
-
-.traffic-info {
+.traffic-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
-.traffic-value {
-  font-weight: 500;
+.traffic-item .value {
   color: #2d3748;
-  font-size: 13px;
+  font-weight: 500;
 }
 
-.traffic-packets {
+.traffic-item .packets {
   font-size: 12px;
   color: #718096;
   background: rgba(0, 0, 0, 0.02);
@@ -496,5 +606,96 @@ defineExpose({ refresh })
 
 :deep(.el-table__column-resize-handle:hover) {
   background-color: #66b1ff;
+}
+
+.total-count {
+  margin-left: auto;
+  color: #909399;
+  font-size: 14px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 0;
+}
+
+:deep(.el-pagination) {
+  --el-pagination-button-color: #409EFF;
+  --el-pagination-hover-color: #66b1ff;
+}
+
+:deep(.el-pagination .el-select .el-input) {
+  width: 110px;
+}
+
+:deep(.el-pagination .el-pagination__total) {
+  margin-right: 16px;
+}
+
+:deep(.el-pagination .el-pagination__sizes) {
+  margin-right: 16px;
+}
+
+:deep(.el-pagination .el-pagination__jump) {
+  margin-left: 16px;
+}
+
+:deep(.el-pagination .el-pagination__jump .el-input__inner) {
+  text-align: center;
+}
+
+:deep(.el-loading-mask) {
+  backdrop-filter: blur(2px);
+}
+
+:deep(.el-loading-spinner) {
+  .el-loading-text {
+    color: #409EFF;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  
+  .circular {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+.column-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.column-header span {
+  font-weight: 600;
+  color: #1a202c;
+  font-size: 13px;
+}
+
+.header-filter {
+  width: 100%;
+}
+
+.header-filter :deep(.el-input__wrapper) {
+  padding: 0 8px;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.header-filter :deep(.el-input__inner) {
+  height: 24px;
+  font-size: 12px;
+}
+
+.header-filter :deep(.el-input__inner::placeholder) {
+  color: #909399;
+}
+
+.filter-container,
+.filter-input {
+  display: none;
 }
 </style> 

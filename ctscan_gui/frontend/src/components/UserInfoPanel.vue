@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { GetUserInfo, GetAllUsers } from '../../wailsjs/go/pkg/App'
 import { User, UserFilled, CopyDocument } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -13,9 +13,30 @@ const userInfo = ref({
 })
 
 const allUsers = ref<{ username: string; uid: string; gid: string; home_dir: string; name: string }[]>([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const loading = ref(false)
+
+// 计算当前页的数据
+const currentPageData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return allUsers.value.slice(start, end)
+})
+
+const handleCurrentChange = (val: number) => {
+  currentPage.value = val
+}
+
+const handleSizeChange = (val: number) => {
+  pageSize.value = val
+  currentPage.value = 1
+}
 
 // 添加 refresh 方法，用于重新获取用户信息
 const refresh = async () => {
+  loading.value = true
   try {
     const [info, users] = await Promise.all([
       GetUserInfo(),
@@ -23,8 +44,11 @@ const refresh = async () => {
     ])
     userInfo.value = info
     allUsers.value = users
+    total.value = users.length
   } catch (error) {
     console.error('获取用户信息失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -78,9 +102,13 @@ defineExpose({ refresh })
       <div class="section-header">
         <el-icon :size="20" color="#409EFF"><UserFilled /></el-icon>
         <h3>系统用户列表</h3>
+        <span class="total-count">共 {{ total }} 个用户</span>
       </div>
       <el-table 
-        :data="allUsers" 
+        v-loading="loading"
+        element-loading-text="正在加载用户信息..."
+        element-loading-background="rgba(255, 255, 255, 0.9)"
+        :data="currentPageData" 
         style="width: 100%"
         border
         :resizable="true"
@@ -142,6 +170,18 @@ defineExpose({ refresh })
           show-overflow-tooltip
         />
       </el-table>
+
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -173,6 +213,61 @@ defineExpose({ refresh })
   font-size: 18px;
   font-weight: 600;
   color: #1a202c;
+}
+
+.total-count {
+  margin-left: auto;
+  color: #909399;
+  font-size: 14px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 0;
+}
+
+:deep(.el-pagination) {
+  --el-pagination-button-color: #409EFF;
+  --el-pagination-hover-color: #66b1ff;
+}
+
+:deep(.el-pagination .el-select .el-input) {
+  width: 110px;
+}
+
+:deep(.el-pagination .el-pagination__total) {
+  margin-right: 16px;
+}
+
+:deep(.el-pagination .el-pagination__sizes) {
+  margin-right: 16px;
+}
+
+:deep(.el-pagination .el-pagination__jump) {
+  margin-left: 16px;
+}
+
+:deep(.el-pagination .el-pagination__jump .el-input__inner) {
+  text-align: center;
+}
+
+:deep(.el-loading-mask) {
+  backdrop-filter: blur(2px);
+}
+
+:deep(.el-loading-spinner) {
+  .el-loading-text {
+    color: #409EFF;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  
+  .circular {
+    width: 30px;
+    height: 30px;
+  }
 }
 
 :deep(.el-descriptions) {
