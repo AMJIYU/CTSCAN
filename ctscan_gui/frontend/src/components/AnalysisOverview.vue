@@ -98,7 +98,7 @@ const switchPanel = (panelId: string) => {
 <template>
   <div class="overview-container">
     <!-- 顶部操作卡片 -->
-    <el-row :gutter="24">
+    <el-row :gutter="20">
       <el-col :span="12">
         <el-card shadow="never" class="action-card">
           <div class="card-content">
