@@ -79,6 +79,7 @@
                 type="primary"
                 link
                 size="small"
+                class="copy-button"
                 @click="copyCommand(row.command)"
               >
                 复制
@@ -427,5 +428,35 @@ defineExpose({ refresh })
 
 :deep(.el-pagination .el-pagination__jump .el-input__inner) {
   text-align: center;
+}
+
+.command-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  padding-right: 60px;
+}
+
+.command-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.copy-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.command-cell:hover .copy-button {
+  opacity: 1;
 }
 </style>

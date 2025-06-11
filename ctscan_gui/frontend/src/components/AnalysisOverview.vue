@@ -47,7 +47,7 @@ const panels = [
   { id: 'process', name: '进程排查', icon: Operation, component: ProcessPanel },
   { id: 'login-success', name: '登入成功', icon: Key, component: LoginSuccessPanel },
   { id: 'login-failed', name: '登入失败', icon: Warning, component: LoginFailedPanel },
-  { id: 'shell-history', name: '命令执行记录', icon: Operation, component: ShellHistoryPanel },
+  { id: 'shell-history', name: '命令记录', icon: Operation, component: ShellHistoryPanel },
   { id: 'rdp', name: 'RDP登入', icon: RdpIcon, component: null }
 ];
 

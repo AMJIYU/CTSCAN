@@ -246,14 +246,15 @@ defineExpose({ refresh })
           </template>
           <template #default="{ row }">
             <div class="path-cell">
-              <span class="path-value">{{ row.home_dir }}</span>
+              <span class="path-text">{{ row.home_dir }}</span>
               <el-button
-                class="copy-button"
                 type="primary"
                 link
+                size="small"
+                class="copy-button"
                 @click="copyPath(row.home_dir)"
               >
-                <el-icon><CopyDocument /></el-icon>
+                复制
               </el-button>
             </div>
           </template>
@@ -398,8 +399,31 @@ defineExpose({ refresh })
 .path-cell {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  position: relative;
+  padding-right: 60px;
+}
+
+.path-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   min-width: 0;
+}
+
+.copy-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.path-cell:hover .copy-button {
+  opacity: 1;
 }
 
 .path-value {
@@ -412,16 +436,6 @@ defineExpose({ refresh })
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.copy-button {
-  padding: 2px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.path-cell:hover .copy-button {
-  opacity: 1;
 }
 
 .copy-button:hover {

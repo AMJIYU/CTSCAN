@@ -265,14 +265,15 @@ defineExpose({ refresh })
           </template>
           <template #default="{ row }">
             <div class="address-cell">
-              <span class="address-value">{{ row.local_addr }}</span>
+              <span class="address-text">{{ row.local_addr }}</span>
               <el-button
-                class="copy-button"
                 type="primary"
                 link
+                size="small"
+                class="copy-button"
                 @click="copyAddress(row.local_addr)"
               >
-                <el-icon><CopyDocument /></el-icon>
+                复制
               </el-button>
             </div>
           </template>
@@ -298,14 +299,15 @@ defineExpose({ refresh })
           </template>
           <template #default="{ row }">
             <div class="address-cell">
-              <span class="address-value">{{ row.remote_addr }}</span>
+              <span class="address-text">{{ row.remote_addr }}</span>
               <el-button
-                class="copy-button"
                 type="primary"
                 link
+                size="small"
+                class="copy-button"
                 @click="copyAddress(row.remote_addr)"
               >
-                <el-icon><CopyDocument /></el-icon>
+                复制
               </el-button>
             </div>
           </template>
@@ -518,33 +520,31 @@ defineExpose({ refresh })
 .address-cell {
   display: flex;
   align-items: center;
-  gap: 4px;
-  min-width: 0;
+  gap: 8px;
+  position: relative;
+  padding-right: 60px;
 }
 
-.address-value {
-  font-family: monospace;
-  font-size: 12px;
-  color: #2d3748;
+.address-text {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .copy-button {
-  padding: 2px;
   opacity: 0;
   transition: opacity 0.2s ease;
+  flex-shrink: 0;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .address-cell:hover .copy-button {
   opacity: 1;
-}
-
-.copy-button:hover {
-  background-color: rgba(64, 158, 255, 0.1);
-  border-radius: 4px;
 }
 
 .pid-value {
