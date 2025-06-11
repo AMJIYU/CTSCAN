@@ -7,6 +7,20 @@ import StartupPanel from './StartupPanel.vue'
 import CronTaskPanel from './CronTaskPanel.vue'
 import ProcessPanel from './ProcessPanel.vue'
 import LoginSuccessPanel from './LoginSuccessPanel.vue'
+import LoginFailedPanel from './LoginFailedPanel.vue'
+import {
+  Monitor,
+  User,
+  Connection,
+  Timer,
+  Calendar,
+  Operation,
+  Key,
+  Warning,
+  Monitor as RdpIcon,
+  Cpu,
+  UploadFilled
+} from '@element-plus/icons-vue'
 
 // 使用ref引用每个选项卡组件
 const systemInfoRef = ref();
@@ -15,8 +29,24 @@ const networkInfoRef = ref();
 const startupRef = ref();
 const cronTaskRef = ref();
 const processRef = ref();
-const patchRef = ref();
 const loginSuccessRef = ref();
+const loginFailedRef = ref();
+
+// 当前激活的面板
+const activePanel = ref('system');
+
+// 面板配置
+const panels = [
+  { id: 'system', name: '系统基本信息', icon: Monitor, component: SystemInfoPanel },
+  { id: 'user', name: '用户信息', icon: User, component: UserInfoPanel },
+  { id: 'network', name: '网络信息', icon: Connection, component: NetworkInfoPanel },
+  { id: 'startup', name: '开机启动项', icon: Timer, component: StartupPanel },
+  { id: 'cron', name: '任务计划', icon: Calendar, component: CronTaskPanel },
+  { id: 'process', name: '进程排查', icon: Operation, component: ProcessPanel },
+  { id: 'login-success', name: '登入成功', icon: Key, component: LoginSuccessPanel },
+  { id: 'login-failed', name: '登入失败', icon: Warning, component: LoginFailedPanel },
+  { id: 'rdp', name: 'RDP登入', icon: RdpIcon, component: null }
+];
 
 // 添加重新获取信息的方法
 const refreshInfo = () => {
@@ -27,11 +57,42 @@ const refreshInfo = () => {
   startupRef.value?.refresh();
   cronTaskRef.value?.refresh();
   processRef.value?.refresh();
-  patchRef.value?.refresh();
   loginSuccessRef.value?.refresh();
+  loginFailedRef.value?.refresh();
   console.log('重新获取所有选项卡信息');
 }
 
+// 切换面板的方法
+const switchPanel = (panelId: string) => {
+  activePanel.value = panelId;
+  // 切换面板后立即刷新数据
+  switch (panelId) {
+    case 'system':
+      systemInfoRef.value?.refresh();
+      break;
+    case 'user':
+      userInfoRef.value?.refresh();
+      break;
+    case 'network':
+      networkInfoRef.value?.refresh();
+      break;
+    case 'startup':
+      startupRef.value?.refresh();
+      break;
+    case 'cron':
+      cronTaskRef.value?.refresh();
+      break;
+    case 'process':
+      processRef.value?.refresh();
+      break;
+    case 'login-success':
+      loginSuccessRef.value?.refresh();
+      break;
+    case 'login-failed':
+      loginFailedRef.value?.refresh();
+      break;
+  }
+}
 </script>
 
 <template>
@@ -64,46 +125,37 @@ const refreshInfo = () => {
       </el-col>
     </el-row>
 
- 
-
-    <!-- 详情标签页 -->
+    <!-- 详情区域 -->
     <div class="details-section">
-       <el-tabs type="border-card" shadow="never" class="detail-tabs">
-        <el-tab-pane label="系统基本信息">
-          <SystemInfoPanel ref="systemInfoRef" />
-        </el-tab-pane>
-        
-        <el-tab-pane label="用户">
-          <UserInfoPanel ref="userInfoRef" />
-        </el-tab-pane>
-        <el-tab-pane label="网络信息">
-          <NetworkInfoPanel ref="networkInfoRef" />
-        </el-tab-pane>
-        <el-tab-pane label="开机启动项">
-          <StartupPanel ref="startupRef" />
-        </el-tab-pane>
-        <el-tab-pane label="任务计划">
-          <CronTaskPanel ref="cronTaskRef" />
-        </el-tab-pane>
-        <el-tab-pane label="进程排查">
-          <ProcessPanel ref="processRef" />
-        </el-tab-pane>
-       
-        <el-tab-pane label="登入成功">
-          <LoginSuccessPanel ref="loginSuccessRef" />
-        </el-tab-pane>
-        <el-tab-pane label="登入失败">
-          <div>这里显示登入失败日志</div>
-        </el-tab-pane>
-        <el-tab-pane label="RDP登入">
-          <div>这里显示RDP登入日志</div>
-        </el-tab-pane>
-        <!-- <div class="tab-placeholder">
-           请执行扫描或上传文件, 然后选择标签页查看数据.
-        </div> -->
-      </el-tabs>
-    </div>
+      <!-- 左侧导航栏 -->
+      <div class="sidebar">
+        <div
+          v-for="panel in panels"
+          :key="panel.id"
+          class="nav-item"
+          :class="{ active: activePanel === panel.id }"
+          @click="switchPanel(panel.id)"
+        >
+          <el-icon><component :is="panel.icon" /></el-icon>
+          <span>{{ panel.name }}</span>
+        </div>
+      </div>
 
+      <!-- 右侧内容区域 -->
+      <div class="content-area">
+        <SystemInfoPanel v-if="activePanel === 'system'" ref="systemInfoRef" />
+        <UserInfoPanel v-if="activePanel === 'user'" ref="userInfoRef" />
+        <NetworkInfoPanel v-if="activePanel === 'network'" ref="networkInfoRef" />
+        <StartupPanel v-if="activePanel === 'startup'" ref="startupRef" />
+        <CronTaskPanel v-if="activePanel === 'cron'" ref="cronTaskRef" />
+        <ProcessPanel v-if="activePanel === 'process'" ref="processRef" />
+        <LoginSuccessPanel v-if="activePanel === 'login-success'" ref="loginSuccessRef" />
+        <LoginFailedPanel v-if="activePanel === 'login-failed'" ref="loginFailedRef" />
+        <div v-if="activePanel === 'rdp'" class="placeholder-content">
+          <el-empty description="RDP登入日志功能开发中..." />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -123,6 +175,62 @@ const refreshInfo = () => {
 
 .details-section {
   flex: 1 1 auto;
+  display: flex;
+  gap: 24px;
+}
+
+.sidebar {
+  width: 150px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  height: fit-content;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  color: #4a5568;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-item:hover {
+  background: rgba(64, 158, 255, 0.05);
+  color: #409EFF;
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+.nav-item .el-icon {
+  margin-right: 12px;
+  font-size: 18px;
+}
+
+.content-area {
+  flex: 1;
+
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  min-height: 600px;
+
 }
 
 .action-card {
@@ -265,5 +373,13 @@ const refreshInfo = () => {
 
 :deep(.el-scrollbar__bar:hover) {
   opacity: 0.8;
+}
+
+.placeholder-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
 }
 </style>
