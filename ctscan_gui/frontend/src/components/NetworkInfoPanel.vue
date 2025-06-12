@@ -18,6 +18,7 @@ interface NetworkInfo {
   macs: string[];
   interfaces: string[];
   interface_stats: InterfaceStats[];
+  gateway: string;
 }
 
 const networkInfo = ref<NetworkInfo>({
@@ -25,7 +26,8 @@ const networkInfo = ref<NetworkInfo>({
   ips: [],
   macs: [],
   interfaces: [],
-  interface_stats: []
+  interface_stats: [],
+  gateway: ''
 })
 
 const connections = ref<{ proto: string; local_addr: string; remote_addr: string; status: string; pid: number }[]>([])
@@ -111,7 +113,7 @@ const activeInterfaceStats = computed(() => {
   )
 })
 
-// 添加 refresh 方法，用于重新获取网络信息
+// 修改 refresh 方法
 const refresh = async () => {
   loading.value = true
   try {
@@ -124,6 +126,11 @@ const refresh = async () => {
     updateTotal()
   } catch (error) {
     console.error('获取网络信息失败:', error)
+    ElMessage({
+      type: 'error',
+      message: '获取网络信息失败',
+      duration: 2000
+    })
   } finally {
     loading.value = false
   }
@@ -157,6 +164,8 @@ defineExpose({ refresh })
 
 <template>
   <div class="network-info-panel">
+   
+
     <!-- 网络连接详情 -->
     <div class="info-card">
       <div class="card-header">
@@ -338,6 +347,20 @@ defineExpose({ refresh })
         <h3>网络基本信息</h3>
       </div>
       <div class="interface-list">
+        <!-- 添加网关信息 -->
+        <div class="interface-item" v-if="networkInfo.gateway">
+          <div class="interface-info">
+            <div class="interface-name">
+              <el-icon><DataLine /></el-icon>
+              <span>默认网关</span>
+            </div>
+            <div class="interface-details">
+              <div class="basic-info">
+                <span class="value gateway-tag">{{ networkInfo.gateway }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
         <div v-for="(iface, index) in networkInfo.interfaces" :key="iface" class="interface-item">
           <div class="interface-info">
             <div class="interface-name">
@@ -491,6 +514,11 @@ defineExpose({ refresh })
 
 .interface-details .mac-tag {
   color: #67C23A;
+}
+
+.interface-details .gateway-tag {
+  color: #E6A23C;
+  font-weight: 500;
 }
 
 .traffic-stats {

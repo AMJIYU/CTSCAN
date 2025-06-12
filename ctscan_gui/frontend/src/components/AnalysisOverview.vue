@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import SystemInfoPanel from './SystemInfoPanel.vue'
 import UserInfoPanel from './UserInfoPanel.vue'
 import NetworkInfoPanel from './NetworkInfoPanel.vue'
@@ -9,6 +9,8 @@ import ProcessPanel from './ProcessPanel.vue'
 import LoginSuccessPanel from './LoginSuccessPanel.vue'
 import LoginFailedPanel from './LoginFailedPanel.vue'
 import ShellHistoryPanel from './ShellHistoryPanel.vue'
+import FileMonitorPanel from './FileMonitorPanel.vue'
+import RdploginPanel from './RdploginPanel.vue'
 import {
   Monitor,
   User,
@@ -20,19 +22,22 @@ import {
   Warning,
   Monitor as RdpIcon,
   Cpu,
-  UploadFilled
+  UploadFilled,
+  Document
 } from '@element-plus/icons-vue'
 
 // 使用ref引用每个选项卡组件
-const systemInfoRef = ref();
-const userInfoRef = ref();
-const networkInfoRef = ref();
-const startupRef = ref();
-const cronTaskRef = ref();
+const systemInfoRef = ref<InstanceType<typeof SystemInfoPanel> | null>(null);
+const userInfoRef = ref<InstanceType<typeof UserInfoPanel> | null>(null);
+const networkInfoRef = ref<InstanceType<typeof NetworkInfoPanel> | null>(null);
+const startupRef = ref<InstanceType<typeof StartupPanel> | null>(null);
+const cronTaskRef = ref<InstanceType<typeof CronTaskPanel> | null>(null);
 const processRef = ref();
 const loginSuccessRef = ref();
 const loginFailedRef = ref();
 const shellHistoryRef = ref();
+const fileMonitorRef = ref<InstanceType<typeof FileMonitorPanel> | null>(null);
+const rdploginRef = ref<InstanceType<typeof RdploginPanel> | null>(null);
 
 // 当前激活的面板
 const activePanel = ref('system');
@@ -48,7 +53,8 @@ const panels = [
   { id: 'login-success', name: '登入成功', icon: Key, component: LoginSuccessPanel },
   { id: 'login-failed', name: '登入失败', icon: Warning, component: LoginFailedPanel },
   { id: 'shell-history', name: '命令记录', icon: Operation, component: ShellHistoryPanel },
-  { id: 'rdp', name: 'RDP登入', icon: RdpIcon, component: null }
+  { id: 'rdp', name: 'RDP登入', icon: RdpIcon, component: RdploginPanel },
+  { id: 'file-monitor', name: '文件监控', icon: Document, component: FileMonitorPanel }
 ];
 
 // 添加重新获取信息的方法
@@ -63,43 +69,56 @@ const refreshInfo = () => {
   loginSuccessRef.value?.refresh();
   loginFailedRef.value?.refresh();
   shellHistoryRef.value?.refresh();
+  rdploginRef.value?.refresh();
   console.log('重新获取所有选项卡信息');
 }
 
 // 切换面板的方法
-const switchPanel = (panelId: string) => {
-  activePanel.value = panelId;
-  // 切换面板后立即刷新数据
-  switch (panelId) {
+const handlePanelChange = (panel: string) => {
+  activePanel.value = panel
+  // 根据当前面板刷新数据
+  switch (panel) {
     case 'system':
-      systemInfoRef.value?.refresh();
-      break;
+      systemInfoRef.value?.refresh()
+      break
     case 'user':
-      userInfoRef.value?.refresh();
-      break;
+      userInfoRef.value?.refresh()
+      break
     case 'network':
-      networkInfoRef.value?.refresh();
-      break;
+      networkInfoRef.value?.refresh()
+      break
     case 'startup':
-      startupRef.value?.refresh();
-      break;
+      startupRef.value?.refresh()
+      break
     case 'cron':
-      cronTaskRef.value?.refresh();
-      break;
-    case 'process':
-      processRef.value?.refresh();
-      break;
-    case 'login-success':
-      loginSuccessRef.value?.refresh();
-      break;
-    case 'login-failed':
-      loginFailedRef.value?.refresh();
-      break;
-    case 'shell-history':
-      shellHistoryRef.value?.refresh();
-      break;
+      cronTaskRef.value?.refresh()
+      break
+    case 'rdp':
+      rdploginRef.value?.refresh()
+      break
+    case 'file-monitor':
+      // 文件监控面板会自动刷新，不需要手动刷新
+      break
   }
 }
+
+const activeTab = ref('system')
+
+const systemInfoPanel = ref<InstanceType<typeof SystemInfoPanel> | null>(null)
+const networkInfoPanel = ref<InstanceType<typeof NetworkInfoPanel> | null>(null)
+
+// 刷新当前标签页的数据
+const refreshCurrentTab = () => {
+  if (activeTab.value === 'system' && systemInfoPanel.value) {
+    systemInfoPanel.value.refresh()
+  } else if (activeTab.value === 'network' && networkInfoPanel.value) {
+    networkInfoPanel.value.refresh()
+  }
+}
+
+onMounted(() => {
+  refreshCurrentTab()
+})
 </script>
 
 <template>
@@ -141,7 +160,7 @@ const switchPanel = (panelId: string) => {
           :key="panel.id"
           class="nav-item"
           :class="{ active: activePanel === panel.id }"
-          @click="switchPanel(panel.id)"
+          @click="handlePanelChange(panel.id)"
         >
           <el-icon><component :is="panel.icon" /></el-icon>
           <span>{{ panel.name }}</span>
@@ -150,18 +169,17 @@ const switchPanel = (panelId: string) => {
 
       <!-- 右侧内容区域 -->
       <div class="content-area">
-        <SystemInfoPanel v-if="activePanel === 'system'" ref="systemInfoRef" />
+        <SystemInfoPanel v-if="activePanel === 'system'" ref="systemInfoPanel" />
         <UserInfoPanel v-if="activePanel === 'user'" ref="userInfoRef" />
-        <NetworkInfoPanel v-if="activePanel === 'network'" ref="networkInfoRef" />
+        <NetworkInfoPanel v-if="activePanel === 'network'" ref="networkInfoPanel" />
         <StartupPanel v-if="activePanel === 'startup'" ref="startupRef" />
         <CronTaskPanel v-if="activePanel === 'cron'" ref="cronTaskRef" />
         <ProcessPanel v-if="activePanel === 'process'" ref="processRef" />
         <LoginSuccessPanel v-if="activePanel === 'login-success'" ref="loginSuccessRef" />
         <LoginFailedPanel v-if="activePanel === 'login-failed'" ref="loginFailedRef" />
         <ShellHistoryPanel v-if="activePanel === 'shell-history'" ref="shellHistoryRef" />
-        <div v-if="activePanel === 'rdp'" class="placeholder-content">
-          <el-empty description="RDP登入日志功能开发中..." />
-        </div>
+        <RdploginPanel v-if="activePanel === 'rdp'" ref="rdploginRef" />
+        <FileMonitorPanel v-if="activePanel === 'file-monitor'" ref="fileMonitorRef" />
       </div>
     </div>
   </div>

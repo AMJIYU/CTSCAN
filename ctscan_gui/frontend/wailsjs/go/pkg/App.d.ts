@@ -16,6 +16,10 @@ export function GetNetworkConnections():Promise<Array<pkg.NetworkConn>>;
 
 export function GetNetworkInfo():Promise<pkg.NetworkInfo>;
 
+export function GetRDPLoginLogs():Promise<Array<pkg.RDPLoginInfo>>;
+
+export function GetSensitiveFileInfo():Promise<Array<pkg.FileInfo>>;
+
 export function GetShellHistory():Promise<Array<pkg.ShellHistory>>;
 
 export function GetStartupItems():Promise<Array<pkg.StartupItem>>;

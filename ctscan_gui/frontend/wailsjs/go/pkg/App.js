@@ -30,6 +30,14 @@ export function GetNetworkInfo() {
   return window['go']['pkg']['App']['GetNetworkInfo']();
 }
 
+export function GetRDPLoginLogs() {
+  return window['go']['pkg']['App']['GetRDPLoginLogs']();
+}
+
+export function GetSensitiveFileInfo() {
+  return window['go']['pkg']['App']['GetSensitiveFileInfo']();
+}
+
 export function GetShellHistory() {
   return window['go']['pkg']['App']['GetShellHistory']();
 }

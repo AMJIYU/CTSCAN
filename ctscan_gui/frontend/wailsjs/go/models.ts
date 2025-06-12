@@ -32,6 +32,66 @@ export namespace pkg {
 	        this.usage = source["usage"];
 	    }
 	}
+	export class FileInfo {
+	    path: string;
+	    exists: boolean;
+	    size: number;
+	    mode: string;
+	    // Go type: time
+	    mod_time: any;
+	    // Go type: time
+	    create_time: any;
+	    // Go type: time
+	    access_time: any;
+	    // Go type: time
+	    change_time: any;
+	    is_dir: boolean;
+	    is_symlink: boolean;
+	    owner: string;
+	    group: string;
+	    permissions: string;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new FileInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.exists = source["exists"];
+	        this.size = source["size"];
+	        this.mode = source["mode"];
+	        this.mod_time = this.convertValues(source["mod_time"], null);
+	        this.create_time = this.convertValues(source["create_time"], null);
+	        this.access_time = this.convertValues(source["access_time"], null);
+	        this.change_time = this.convertValues(source["change_time"], null);
+	        this.is_dir = source["is_dir"];
+	        this.is_symlink = source["is_symlink"];
+	        this.owner = source["owner"];
+	        this.group = source["group"];
+	        this.permissions = source["permissions"];
+	        this.description = source["description"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class InterfaceStats {
 	    name: string;
 	    bytes_sent: number;
@@ -124,6 +184,7 @@ export namespace pkg {
 	    macs: string[];
 	    interfaces: string[];
 	    interface_stats: InterfaceStats[];
+	    gateway: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new NetworkInfo(source);
@@ -136,6 +197,7 @@ export namespace pkg {
 	        this.macs = source["macs"];
 	        this.interfaces = source["interfaces"];
 	        this.interface_stats = this.convertValues(source["interface_stats"], InterfaceStats);
+	        this.gateway = source["gateway"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -188,6 +250,26 @@ export namespace pkg {
 	        this.signature = source["signature"];
 	        this.cpu_percent = source["cpu_percent"];
 	        this.mem_percent = source["mem_percent"];
+	    }
+	}
+	export class RDPLoginInfo {
+	    time: string;
+	    username: string;
+	    ip: string;
+	    status: string;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RDPLoginInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.time = source["time"];
+	        this.username = source["username"];
+	        this.ip = source["ip"];
+	        this.status = source["status"];
+	        this.description = source["description"];
 	    }
 	}
 	export class ShellHistory {

@@ -1,11 +1,12 @@
 package pkg
 
 import (
+	"fmt"
 	"net"
 	"os"
-
-	"fmt"
+	"os/exec"
 	"strconv"
+	"strings"
 
 	gopsnet "github.com/shirou/gopsutil/v4/net"
 )
@@ -24,6 +25,7 @@ type NetworkInfo struct {
 	MACs           []string         `json:"macs"`
 	Interfaces     []string         `json:"interfaces"`
 	InterfaceStats []InterfaceStats `json:"interface_stats"`
+	Gateway        string           `json:"gateway"`
 }
 
 type NetworkConn struct {
@@ -34,10 +36,54 @@ type NetworkConn struct {
 	Pid        int32  `json:"pid"`
 }
 
+type RouteInfo struct {
+	Destination string `json:"destination"`
+	Gateway     string `json:"gateway"`
+	Interface   string `json:"interface"`
+	Flags       string `json:"flags"`
+}
+
 func (a *App) GetNetworkInfo() NetworkInfo {
 	var ips, macs, ifaces []string
 	hostname, _ := os.Hostname()
 	netIfs, _ := net.Interfaces()
+
+	// 获取默认网关
+	gateway := ""
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err == nil {
+		defer conn.Close()
+		localAddr := conn.LocalAddr().(*net.UDPAddr)
+		ip := localAddr.IP.String()
+
+		// 获取该 IP 对应的接口
+		for _, iface := range netIfs {
+			addrs, _ := iface.Addrs()
+			for _, addr := range addrs {
+				if strings.Contains(addr.String(), ip) {
+					// 获取该接口的默认路由
+					cmd := exec.Command("route", "-n", "get", "default")
+					output, err := cmd.Output()
+					if err == nil {
+						lines := strings.Split(string(output), "\n")
+						for _, line := range lines {
+							if strings.Contains(line, "gateway") {
+								fields := strings.Fields(line)
+								if len(fields) >= 2 {
+									gateway = fields[len(fields)-1]
+									break
+								}
+							}
+						}
+					}
+					break
+				}
+			}
+			if gateway != "" {
+				break
+			}
+		}
+	}
 
 	// 获取网络流量统计
 	ioStats, _ := gopsnet.IOCounters(true)
@@ -45,7 +91,12 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 
 	for _, iface := range netIfs {
 		ifaces = append(ifaces, iface.Name)
-		macs = append(macs, iface.HardwareAddr.String())
+		mac := iface.HardwareAddr.String()
+		if mac != "" {
+			macs = append(macs, mac)
+		} else {
+			macs = append(macs, "")
+		}
 
 		// 查找对应网卡的流量统计
 		for _, stat := range ioStats {
@@ -62,6 +113,7 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 		}
 
 		addrs, _ := iface.Addrs()
+		var interfaceIPs []string
 		for _, addr := range addrs {
 			var ip net.IP
 			switch v := addr.(type) {
@@ -74,8 +126,13 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 				continue
 			}
 			if ip.To4() != nil || ip.To16() != nil {
-				ips = append(ips, ip.String())
+				interfaceIPs = append(interfaceIPs, ip.String())
 			}
+		}
+		if len(interfaceIPs) > 0 {
+			ips = append(ips, interfaceIPs[0]) // 只取第一个 IP
+		} else {
+			ips = append(ips, "")
 		}
 	}
 
@@ -85,6 +142,7 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 		MACs:           macs,
 		Interfaces:     ifaces,
 		InterfaceStats: interfaceStats,
+		Gateway:        gateway,
 	}
 }
 
