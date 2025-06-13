@@ -61,10 +61,25 @@ const refresh = async () => {
   loading.value = true
   try {
     const response = await GetRDPLoginLogs()
-    logs.value = response
-    await SaveRDPLogin(response)
+    if (response) {
+      logs.value = response
+      await SaveRDPLogin(response)
+    } else {
+      logs.value = []
+      ElMessage({
+        type: 'warning',
+        message: '未找到RDP登录记录',
+        duration: 2000
+      })
+    }
   } catch (error) {
     console.error('获取RDP登录记录失败:', error)
+    logs.value = []
+    ElMessage({
+      type: 'error',
+      message: '获取RDP登录记录失败',
+      duration: 2000
+    })
   } finally {
     loading.value = false
   }

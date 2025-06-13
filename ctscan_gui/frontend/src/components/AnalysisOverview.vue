@@ -25,6 +25,7 @@ import {
   UploadFilled,
   Document
 } from '@element-plus/icons-vue'
+import { ElMessage, ElLoading } from 'element-plus'
 
 // 使用ref引用每个选项卡组件
 const systemInfoRef = ref<InstanceType<typeof SystemInfoPanel> | null>(null);
@@ -58,19 +59,44 @@ const panels = [
 ];
 
 // 添加重新获取信息的方法
-const refreshInfo = () => {
-  // 调用所有选项卡组件的刷新方法，重新获取当前所有选项卡的信息
-  systemInfoRef.value?.refresh();
-  userInfoRef.value?.refresh();
-  networkInfoRef.value?.refresh();
-  startupRef.value?.refresh();
-  cronTaskRef.value?.refresh();
-  processRef.value?.refresh();
-  loginSuccessRef.value?.refresh();
-  loginFailedRef.value?.refresh();
-  shellHistoryRef.value?.refresh();
-  rdploginRef.value?.refresh();
-  console.log('重新获取所有选项卡信息');
+const refreshInfo = async () => {
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在重新获取所有信息...',
+    background: 'rgba(255, 255, 255, 0.7)',
+  })
+  
+  try {
+    // 调用所有选项卡组件的刷新方法，重新获取当前所有选项卡的信息
+    await Promise.all([
+      systemInfoRef.value?.refresh(),
+      userInfoRef.value?.refresh(),
+      networkInfoRef.value?.refresh(),
+      startupRef.value?.refresh(),
+      cronTaskRef.value?.refresh(),
+      processRef.value?.refresh(),
+      loginSuccessRef.value?.refresh(),
+      loginFailedRef.value?.refresh(),
+      shellHistoryRef.value?.refresh(),
+      rdploginRef.value?.refresh(),
+      fileMonitorRef.value?.refresh()
+    ])
+    
+    ElMessage({
+      type: 'success',
+      message: '所有信息已更新完成',
+      duration: 2000
+    })
+  } catch (error) {
+    console.error('刷新信息失败:', error)
+    ElMessage({
+      type: 'error',
+      message: '刷新信息时出现错误',
+      duration: 2000
+    })
+  } finally {
+    loading.close()
+  }
 }
 
 // 切换面板的方法
@@ -97,22 +123,19 @@ const handlePanelChange = (panel: string) => {
       rdploginRef.value?.refresh()
       break
     case 'file-monitor':
-      // 文件监控面板会自动刷新，不需要手动刷新
+      fileMonitorRef.value?.refresh()
       break
   }
 }
 
 const activeTab = ref('system')
 
-const systemInfoPanel = ref<InstanceType<typeof SystemInfoPanel> | null>(null)
-const networkInfoPanel = ref<InstanceType<typeof NetworkInfoPanel> | null>(null)
-
 // 刷新当前标签页的数据
 const refreshCurrentTab = () => {
-  if (activeTab.value === 'system' && systemInfoPanel.value) {
-    systemInfoPanel.value.refresh()
-  } else if (activeTab.value === 'network' && networkInfoPanel.value) {
-    networkInfoPanel.value.refresh()
+  if (activeTab.value === 'system' && systemInfoRef.value) {
+    systemInfoRef.value.refresh()
+  } else if (activeTab.value === 'network' && networkInfoRef.value) {
+    networkInfoRef.value.refresh()
   }
 }
 
@@ -169,9 +192,9 @@ onMounted(() => {
 
       <!-- 右侧内容区域 -->
       <div class="content-area">
-        <SystemInfoPanel v-if="activePanel === 'system'" ref="systemInfoPanel" />
+        <SystemInfoPanel v-if="activePanel === 'system'" ref="systemInfoRef" />
         <UserInfoPanel v-if="activePanel === 'user'" ref="userInfoRef" />
-        <NetworkInfoPanel v-if="activePanel === 'network'" ref="networkInfoPanel" />
+        <NetworkInfoPanel v-if="activePanel === 'network'" ref="networkInfoRef" />
         <StartupPanel v-if="activePanel === 'startup'" ref="startupRef" />
         <CronTaskPanel v-if="activePanel === 'cron'" ref="cronTaskRef" />
         <ProcessPanel v-if="activePanel === 'process'" ref="processRef" />

@@ -48,6 +48,7 @@ const refresh = async () => {
   } catch (error) {
     console.error('获取系统信息失败:', error)
   } finally {
+    
     loading.value = false
   }
 }

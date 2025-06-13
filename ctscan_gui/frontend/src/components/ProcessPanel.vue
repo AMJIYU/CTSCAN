@@ -133,11 +133,6 @@ const handleSortChange = ({ prop, order }: { prop: string, order: string }) => {
 }
 
 const refresh = () => {
-  // 如果不是第一次加载，直接返回
-  if (!isFirstLoad.value) {
-    return
-  }
-  
   loading.value = true
   GetAllProcesses().then(list => {
     processes.value = list
@@ -146,7 +141,6 @@ const refresh = () => {
     SaveProcessInfo(list).catch(error => {
       console.error('保存进程信息到数据库失败:', error)
     })
-    isFirstLoad.value = false
   }).finally(() => {
     loading.value = false
   })
