@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { GetStartupItems } from '../../wailsjs/go/pkg/App'
+import { GetStartupItems, SaveStartupItems } from '../../wailsjs/go/pkg/App'
 import { Timer, Document, Filter } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { pkg } from '../../wailsjs/go/models'
@@ -96,6 +96,8 @@ const refresh = async () => {
     const items = await GetStartupItems()
     startupItems.value = items
     updateTotal()
+    // 保存到数据库
+    await SaveStartupItems(items)
   } catch (error) {
     console.error('获取启动项信息失败:', error)
   } finally {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { GetAllProcesses } from '../../wailsjs/go/pkg/App'
+import { GetAllProcesses, SaveProcessInfo } from '../../wailsjs/go/pkg/App'
 import { Monitor, Document, Connection, Timer, Key } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -142,6 +142,10 @@ const refresh = () => {
   GetAllProcesses().then(list => {
     processes.value = list
     total.value = list.length
+    // 保存到数据库
+    SaveProcessInfo(list).catch(error => {
+      console.error('保存进程信息到数据库失败:', error)
+    })
     isFirstLoad.value = false
   }).finally(() => {
     loading.value = false
@@ -154,6 +158,10 @@ const forceRefresh = () => {
   GetAllProcesses().then(list => {
     processes.value = list
     total.value = list.length
+    // 保存到数据库
+    SaveProcessInfo(list).catch(error => {
+      console.error('保存进程信息到数据库失败:', error)
+    })
   }).finally(() => {
     loading.value = false
   })

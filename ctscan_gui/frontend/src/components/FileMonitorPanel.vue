@@ -2,10 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { Document, Timer, User, Folder, Link } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { GetSensitiveFileInfo } from '../../wailsjs/go/pkg/App'
+import { GetSensitiveFileInfo, SaveFileMonitor } from '../../wailsjs/go/pkg/App'
 
 interface FileInfo {
   path: string
+  exists: boolean
   size: number
   mode: string
   mod_time: string
@@ -20,7 +21,7 @@ interface FileInfo {
   description: string
 }
 
-const files = ref<FileInfo[]>([])
+const fileInfos = ref<FileInfo[]>([])
 const loading = ref(false)
 
 // 分页相关
@@ -82,7 +83,7 @@ const getFileTypeTag = (file: FileInfo) => {
 
 // 筛选后的数据
 const filteredFiles = computed(() => {
-  return files.value.filter(file => {
+  return fileInfos.value.filter(file => {
     return !filters.value.path || file.path.toLowerCase().includes(filters.value.path.toLowerCase())
   })
 })
@@ -124,17 +125,15 @@ const copyPath = async (path: string) => {
 }
 
 // 刷新文件信息
-const refreshFiles = async () => {
+const refresh = async () => {
   loading.value = true
   try {
-    files.value = await GetSensitiveFileInfo()
+    const files = await GetSensitiveFileInfo()
+    fileInfos.value = files
+    // 保存到数据库
+    await SaveFileMonitor(files)
   } catch (error) {
-    console.error('获取文件信息失败:', error)
-    ElMessage({
-      type: 'error',
-      message: '获取文件信息失败',
-      duration: 2000
-    })
+    console.error('获取文件监控信息失败:', error)
   } finally {
     loading.value = false
   }
@@ -147,9 +146,12 @@ const sortByTime = (a: string, b: string) => {
   return dateA - dateB
 }
 
-onMounted(async () => {
-  await refreshFiles()
+onMounted(() => {
+  refresh()
 })
+
+// 暴露 refresh 方法，供父组件调用
+defineExpose({ refresh })
 </script>
 
 <template>
@@ -170,7 +172,7 @@ onMounted(async () => {
         <el-button 
           type="primary" 
           link 
-          @click="refreshFiles"
+          @click="refresh"
           :loading="loading"
         >
           刷新
@@ -184,7 +186,7 @@ onMounted(async () => {
         style="width: 100%"
         border
         size="small"
-        v-if="files.length > 0"
+        v-if="fileInfos.length > 0"
       >
         <el-table-column prop="path" label="文件路径" min-width="130">
           <template #header>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { GetNetworkInfo, GetNetworkConnections } from '../../wailsjs/go/pkg/App'
+import { GetNetworkInfo, GetNetworkConnections, SaveNetworkInfo, SaveNetworkConnections } from '../../wailsjs/go/pkg/App'
 import { Monitor, Connection, DataLine, CopyDocument, Filter } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -123,6 +123,13 @@ const refresh = async () => {
     ])
     networkInfo.value = info
     connections.value = conns
+    // 保存到数据库
+    await Promise.all([
+      SaveNetworkInfo(info),
+      SaveNetworkConnections(conns)
+    ]).catch(error => {
+      console.error('保存网络信息到数据库失败:', error)
+    })
     updateTotal()
   } catch (error) {
     console.error('获取网络信息失败:', error)

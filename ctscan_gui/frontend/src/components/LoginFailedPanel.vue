@@ -191,6 +191,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Timer, Document, User, Location } from '@element-plus/icons-vue'
+import { GetLoginFailedRecords, SaveLoginFailed } from '../../wailsjs/go/pkg/App'
 
 declare global {
   interface Window {
@@ -280,8 +281,10 @@ const handleSizeChange = (val: number) => {
 const fetchRecords = async () => {
   loading.value = true
   try {
-    const response = await window.go.main.App.GetLoginFailedRecords()
+    const response = await GetLoginFailedRecords()
     records.value = response
+    // 保存到数据库
+    await SaveLoginFailed(response)
   } catch (error) {
     console.error('获取登录失败记录失败:', error)
   } finally {
@@ -292,6 +295,9 @@ const fetchRecords = async () => {
 onMounted(() => {
   fetchRecords()
 })
+
+// 暴露 fetchRecords 方法，供父组件调用
+defineExpose({ fetchRecords })
 </script>
 
 <style scoped>

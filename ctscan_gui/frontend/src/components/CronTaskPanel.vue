@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { GetCronTasks } from '../../wailsjs/go/pkg/App'
-import { Timer, Document } from '@element-plus/icons-vue'
+import { GetCronTasks, SaveCronTasks } from '../../wailsjs/go/pkg/App'
+import { Timer, Document, Calendar } from '@element-plus/icons-vue'
 
 interface CronTask {
   line: string
@@ -194,6 +194,8 @@ const refresh = async () => {
   try {
     const tasks = await GetCronTasks()
     cronTasks.value = tasks.map(task => parseTask(task.line))
+    // 保存到数据库
+    await SaveCronTasks(tasks)
   } catch (error) {
     console.error('获取计划任务失败:', error)
   } finally {

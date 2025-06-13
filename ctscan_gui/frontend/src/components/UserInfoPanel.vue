@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { GetUserInfo, GetAllUsers } from '../../wailsjs/go/pkg/App'
+import { GetUserInfo, GetAllUsers, SaveUserInfo } from '../../wailsjs/go/pkg/App'
 import { User, UserFilled, CopyDocument } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
-const userInfo = ref({
+interface User {
+  username: string
+  uid: string
+  gid: string
+  home_dir: string
+  name: string
+}
+
+const userInfo = ref<User>({
   username: '',
   uid: '',
   gid: '',
@@ -12,7 +20,7 @@ const userInfo = ref({
   name: ''
 })
 
-const allUsers = ref<{ username: string; uid: string; gid: string; home_dir: string; name: string }[]>([])
+const allUsers = ref<User[]>([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -79,6 +87,13 @@ const refresh = async () => {
     userInfo.value = info
     allUsers.value = users
     total.value = users.length
+
+    // 保存当前用户信息到数据库
+    await SaveUserInfo(info)
+    // 保存所有用户信息到数据库
+    for (const user of users) {
+      await SaveUserInfo(user)
+    }
   } catch (error) {
     console.error('获取用户信息失败:', error)
   } finally {

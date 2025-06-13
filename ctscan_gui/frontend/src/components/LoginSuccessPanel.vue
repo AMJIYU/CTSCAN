@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { GetLoginSuccessRecords } from '../../wailsjs/go/pkg/App'
+import { GetLoginSuccessRecords, SaveLoginSuccess } from '../../wailsjs/go/pkg/App'
 import { ElMessage } from 'element-plus'
-import { Timer, User, Location, Document } from '@element-plus/icons-vue'
+import { Timer, User, Location, Document, Key } from '@element-plus/icons-vue'
 
-const records = ref<any[]>([])
+interface LoginSuccess {
+  time: string
+  event_id: string
+  event_type: string
+  source: string
+  username: string
+  ip_address: string
+}
+
+const loginSuccessRecords = ref<LoginSuccess[]>([])
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -33,7 +42,7 @@ const resetFilters = () => {
 
 // 筛选后的数据
 const filteredRecords = computed(() => {
-  return records.value.filter(record => {
+  return loginSuccessRecords.value.filter(record => {
     return (
       (!filters.value.time || formatTime(record.time).includes(filters.value.time)) &&
       (!filters.value.event_type || record.event_type.includes(filters.value.event_type)) &&
@@ -74,15 +83,17 @@ const formatTime = (time: string) => {
   })
 }
 
-// 添加 refresh 方法，用于重新获取登录成功日志信息
+// 添加 refresh 方法，用于重新获取登录成功记录
 const refresh = async () => {
   loading.value = true
   try {
-    const logs = await GetLoginSuccessRecords()
-    records.value = logs
-    total.value = logs.length
+    const records = await GetLoginSuccessRecords()
+    loginSuccessRecords.value = records
+    // 保存到数据库
+    await SaveLoginSuccess(records)
+    total.value = records.length
   } catch (error) {
-    ElMessage.error('获取登录记录失败')
+    console.error('获取登录成功记录失败:', error)
   } finally {
     loading.value = false
   }
@@ -107,8 +118,11 @@ defineExpose({ refresh })
 
 <template>
   <div class="login-success-panel">
-    <div class="panel-header">
-      <h2>登录成功记录</h2>
+    <div class="info-section">
+      <div class="section-header">
+        <el-icon :size="20" color="#409EFF"><Key /></el-icon>
+        <h3>登录成功记录</h3>
+      </div>
       <div class="header-actions">
         <span class="total-count">共 {{ total }} 条记录</span>
         <el-button 
@@ -127,17 +141,15 @@ defineExpose({ refresh })
           刷新
         </el-button>
       </div>
-    </div>
-    
-    <div class="table-container" v-loading="loading">
       <el-table 
         :data="currentPageData" 
-        style="width: 100%"
+        style="width: 100%" 
         border
-        size="small"
-        v-if="records.length > 0"
+        v-loading="loading"
+        element-loading-text="正在加载登录成功记录..."
+        element-loading-background="rgba(255, 255, 255, 0.8)"
       >
-        <el-table-column prop="time" label="时间" min-width="180">
+        <el-table-column prop="time" label="时间" width="180" show-overflow-tooltip>
           <template #header>
             <div class="table-header">
               <span>时间</span>
@@ -156,50 +168,7 @@ defineExpose({ refresh })
             </div>
           </template>
         </el-table-column>
-        
-        <el-table-column prop="event_type" label="事件类型" width="120">
-          <template #header>
-            <div class="table-header">
-              <span>事件类型</span>
-              <el-input
-                v-model="filters.event_type"
-                placeholder="筛选类型"
-                size="small"
-                clearable
-              />
-            </div>
-          </template>
-          <template #default="{ row }">
-            <el-tag 
-              size="small" 
-              :type="row.event_type === '当前登录' ? 'success' : 'info'"
-            >
-              {{ row.event_type }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="source" label="来源" min-width="200">
-          <template #header>
-            <div class="table-header">
-              <span>来源</span>
-              <el-input
-                v-model="filters.source"
-                placeholder="筛选来源"
-                size="small"
-                clearable
-              />
-            </div>
-          </template>
-          <template #default="{ row }">
-            <div class="source-cell">
-              <el-icon><Document /></el-icon>
-              <span>{{ row.source }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="username" label="用户名" min-width="120">
+        <el-table-column prop="username" label="用户名" width="120" show-overflow-tooltip>
           <template #header>
             <div class="table-header">
               <span>用户名</span>
@@ -211,15 +180,8 @@ defineExpose({ refresh })
               />
             </div>
           </template>
-          <template #default="{ row }">
-            <div class="username-cell">
-              <el-icon><User /></el-icon>
-              <span>{{ row.username || '-' }}</span>
-            </div>
-          </template>
         </el-table-column>
-        
-        <el-table-column prop="ip_address" label="IP地址" min-width="140">
+        <el-table-column prop="ip_address" label="IP地址" width="140" show-overflow-tooltip>
           <template #header>
             <div class="table-header">
               <span>IP地址</span>
@@ -231,19 +193,34 @@ defineExpose({ refresh })
               />
             </div>
           </template>
-          <template #default="{ row }">
-            <div class="ip-cell">
-              <el-icon><Location /></el-icon>
-              <span>{{ row.ip_address || '-' }}</span>
+        </el-table-column>
+        <el-table-column prop="source" label="来源" width="120" show-overflow-tooltip>
+          <template #header>
+            <div class="table-header">
+              <span>来源</span>
+              <el-input
+                v-model="filters.source"
+                placeholder="筛选来源"
+                size="small"
+                clearable
+              />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="event_type" label="事件类型" width="120" show-overflow-tooltip>
+          <template #header>
+            <div class="table-header">
+              <span>事件类型</span>
+              <el-input
+                v-model="filters.event_type"
+                placeholder="筛选类型"
+                size="small"
+                clearable
+              />
             </div>
           </template>
         </el-table-column>
       </el-table>
-      
-      <el-empty 
-        v-else 
-        description="暂无登录记录"
-      />
     </div>
 
     <div class="pagination-container">
@@ -265,18 +242,27 @@ defineExpose({ refresh })
   padding: 0;
 }
 
-.panel-header {
+.info-section {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 20px;
 }
 
-.panel-header h2 {
+.section-header h3 {
+  margin: 0;
   font-size: 18px;
   font-weight: 600;
   color: #1a202c;
-  margin: 0;
 }
 
 .header-actions {
@@ -290,26 +276,22 @@ defineExpose({ refresh })
   font-size: 14px;
 }
 
-.table-container {
+:deep(.el-table) {
+  background: transparent;
   border-radius: 8px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-:deep(.el-table) {
-  --el-table-border-color: rgba(0, 0, 0, 0.05);
-  --el-table-header-bg-color: rgba(0, 0, 0, 0.02);
 }
 
 :deep(.el-table th) {
+  background-color: rgba(0, 0, 0, 0.02);
   font-weight: 600;
   color: #1a202c;
+  padding: 12px 16px;
 }
 
 :deep(.el-table td) {
-  color: #4a5568;
+  color: #2d3748;
+  padding: 12px 16px;
 }
 
 :deep(.el-table tr:hover > td) {
@@ -345,17 +327,15 @@ defineExpose({ refresh })
   backdrop-filter: blur(2px);
 }
 
-:deep(.el-loading-spinner) {
-  .el-loading-text {
-    color: #409EFF;
-    font-size: 14px;
-    margin-top: 8px;
-  }
-  
-  .circular {
-    width: 30px;
-    height: 30px;
-  }
+:deep(.el-loading-spinner .el-loading-text) {
+  color: #409EFF;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+:deep(.el-loading-spinner .circular) {
+  width: 30px;
+  height: 30px;
 }
 
 .table-header {

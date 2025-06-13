@@ -155,7 +155,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Timer, Operation, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { GetShellHistory } from '../../wailsjs/go/pkg/App'
+import { GetShellHistory, SaveShellHistory } from '../../wailsjs/go/pkg/App'
 
 interface ShellHistory {
   time: string;
@@ -263,6 +263,10 @@ const refresh = async () => {
   try {
     const response = await GetShellHistory()
     records.value = response
+    // 保存到数据库
+    await SaveShellHistory(response).catch(error => {
+      console.error('保存命令执行记录到数据库失败:', error)
+    })
   } catch (error) {
     console.error('获取命令执行记录失败:', error)
   } finally {

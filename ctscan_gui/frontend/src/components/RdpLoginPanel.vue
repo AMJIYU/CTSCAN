@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Timer, User, Location, InfoFilled, Monitor } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { GetRDPLoginLogs } from '../../wailsjs/go/pkg/App'
+import { GetRDPLoginLogs, SaveRDPLogin } from '../../wailsjs/go/pkg/App'
 
 interface RDPLoginInfo {
   time: string
@@ -63,6 +63,10 @@ const refreshLogs = async () => {
     const result = await GetRDPLoginLogs()
     // 确保返回的是数组，即使是空数组
     logs.value = Array.isArray(result) ? result : []
+    // 保存到数据库
+    await SaveRDPLogin(logs.value).catch(error => {
+      console.error('保存RDP登录日志到数据库失败:', error)
+    })
   } catch (error) {
     console.error('获取RDP登录日志失败:', error)
     ElMessage({
