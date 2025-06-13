@@ -41,76 +41,49 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 		}
 	case "darwin":
 		println("开始获取 macOS 登录失败记录...")
-		// 使用多个条件组合查询，确保能捕获所有登录失败情况
-		predicates := []string{
-			"subsystem == 'com.apple.security'",
-			"subsystem == 'com.apple.authentication'",
-			"eventMessage CONTAINS 'Failed to authenticate'",
-			"eventMessage CONTAINS 'authentication failed'",
-			"eventMessage CONTAINS 'password check failed'",
-			"eventMessage CONTAINS 'login failed'",
-			"eventMessage CONTAINS 'authentication error'",
+		// 使用最简单的查询方式，只获取最近的100条记录
+		out, err := exec.Command("log", "show", "--predicate", "eventMessage CONTAINS 'Failed'", "--last", "24h", "--limit", "10000", "--style", "json").CombinedOutput()
+		if err != nil {
+			println("查询失败:", err.Error())
+			return records
 		}
 
-		var allRecords []LoginFailed
-		for _, predicate := range predicates {
-			println("执行查询:", predicate)
-			// 增加时间范围到30天，并添加更多日志级别
-			out, err := exec.Command("log", "show", "--predicate", predicate, "--info", "--debug", "--last", "30d", "--style", "json").CombinedOutput()
+		// 解析 JSON 输出
+		var logEntries []struct {
+			Timestamp    string `json:"timestamp"`
+			EventMessage string `json:"eventMessage"`
+		}
+
+		if err := json.Unmarshal(out, &logEntries); err != nil {
+			println("JSON 解析失败:", err.Error())
+			return records
+		}
+
+		println("找到", len(logEntries), "条记录")
+
+		// 使用 map 直接去重
+		seen := make(map[string]bool)
+		for _, entry := range logEntries {
+			// 解析时间戳
+			timestamp, err := time.Parse(time.RFC3339, entry.Timestamp)
 			if err != nil {
-				println("查询失败:", err.Error())
 				continue
 			}
 
-			// 解析 JSON 输出
-			var logEntries []struct {
-				Timestamp    string `json:"timestamp"`
-				EventMessage string `json:"eventMessage"`
+			// 提取用户名
+			message := entry.EventMessage
+			username := ""
+			if strings.Contains(message, "for user") {
+				parts := strings.Split(message, "for user")
+				if len(parts) > 1 {
+					username = strings.TrimSpace(parts[1])
+				}
 			}
 
-			if err := json.Unmarshal(out, &logEntries); err != nil {
-				println("JSON 解析失败:", err.Error())
-				continue
-			}
-
-			println("找到", len(logEntries), "条记录")
-
-			for _, entry := range logEntries {
-				// 解析时间戳
-				timestamp, err := time.Parse(time.RFC3339, entry.Timestamp)
-				if err != nil {
-					continue
-				}
-
-				// 解析用户名和失败原因
-				message := entry.EventMessage
-				username := ""
-				reason := ""
-
-				// 提取用户名
-				if strings.Contains(message, "for user") {
-					parts := strings.Split(message, "for user")
-					if len(parts) > 1 {
-						username = strings.TrimSpace(parts[1])
-					}
-				} else if strings.Contains(message, "user:") {
-					parts := strings.Split(message, "user:")
-					if len(parts) > 1 {
-						username = strings.TrimSpace(parts[1])
-					}
-				}
-
-				// 提取失败原因
-				if strings.Contains(message, "reason:") {
-					parts := strings.Split(message, "reason:")
-					if len(parts) > 1 {
-						reason = strings.TrimSpace(parts[1])
-					}
-				} else {
-					// 如果没有明确的原因，使用消息本身作为原因
-					reason = message
-				}
-
+			// 生成唯一键
+			key := timestamp.Format("2006-01-02 15:04:05") + username
+			if !seen[key] {
+				seen[key] = true
 				record := LoginFailed{
 					Time:      timestamp.Format("2006-01-02 15:04:05"),
 					EventID:   "4625",
@@ -118,19 +91,8 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 					Source:    "System",
 					Username:  username,
 					IPAddress: "本地",
-					Reason:    reason,
+					Reason:    message,
 				}
-
-				allRecords = append(allRecords, record)
-			}
-		}
-
-		// 去重
-		seen := make(map[string]bool)
-		for _, record := range allRecords {
-			key := record.Time + record.Username + record.Reason
-			if !seen[key] {
-				seen[key] = true
 				records = append(records, record)
 			}
 		}
