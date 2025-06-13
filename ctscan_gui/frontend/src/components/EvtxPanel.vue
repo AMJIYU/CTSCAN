@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, PropType } from 'vue'
-import { ElMessage, ElLoading } from 'element-plus'
-import { Document, Search, Filter, Download, Key, Warning } from '@element-plus/icons-vue'
+import { ref,  computed,  } from 'vue'
+import { ElMessage,  } from 'element-plus'
+import { Search,  Key, Warning } from '@element-plus/icons-vue'
 import { ParseEVTXFile } from '../../wailsjs/go/pkg/App'
 import { pkg } from '../../wailsjs/go/models'
 
@@ -11,8 +11,6 @@ const emit = defineEmits(['update:events'])
 const events = ref<pkg.EVTXEvent[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
-const selectedLevel = ref('')
-const selectedChannel = ref('')
 const currentPage = ref(1)
 const pageSize = ref(20)
 const dialogVisible = ref(false)
@@ -21,10 +19,6 @@ const quickFilter = ref('')
 
 // 分页相关
 const total = computed(() => filteredEvents.value.length)
-
-// 获取所有可用的级别和通道
-const levels = ref<string[]>([])
-const channels = ref<string[]>([])
 
 // 过滤后的事件列表
 const filteredEvents = computed(() => {
@@ -36,9 +30,6 @@ const filteredEvents = computed(() => {
       event.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       event.provider.toLowerCase().includes(searchQuery.value.toLowerCase())
     
-    const matchesLevel = selectedLevel.value === '' || event.level === selectedLevel.value
-    const matchesChannel = selectedChannel.value === '' || event.channel === selectedChannel.value
-    
     // 快速筛选
     let matchesQuickFilter = true
     if (quickFilter.value === 'login-success') {
@@ -47,7 +38,7 @@ const filteredEvents = computed(() => {
       matchesQuickFilter = event.event_id === 4625 || event.event_id === 4647
     }
     
-    return matchesSearch && matchesLevel && matchesChannel && matchesQuickFilter
+    return matchesSearch && matchesQuickFilter
   })
 })
 
@@ -75,18 +66,6 @@ const parseEvtxFile = async (filePath: string) => {
   try {
     const result = await ParseEVTXFile(filePath)
     events.value = result
-    
-    // 提取所有唯一的级别和通道
-    const uniqueLevels = new Set<string>()
-    const uniqueChannels = new Set<string>()
-    
-    result.forEach(event => {
-      uniqueLevels.add(event.level)
-      uniqueChannels.add(event.channel)
-    })
-    
-    levels.value = Array.from(uniqueLevels)
-    channels.value = Array.from(uniqueChannels)
     
     ElMessage({
       type: 'success',
@@ -186,17 +165,7 @@ defineExpose({
   setEvents: (ev: pkg.EVTXEvent[]) => {
     console.log('EvtxPanel 收到事件数据:', ev)
     events.value = ev
-    // 提取所有唯一的级别和通道
-    const uniqueLevels = new Set<string>()
-    const uniqueChannels = new Set<string>()
-    ev.forEach(event => {
-      uniqueLevels.add(event.level)
-      uniqueChannels.add(event.channel)
-    })
-    levels.value = Array.from(uniqueLevels)
-    channels.value = Array.from(uniqueChannels)
-    console.log('更新后的级别列表:', levels.value)
-    console.log('更新后的通道列表:', channels.value)
+    console.log('更新后的事件列表:', events.value)
   },
   refresh: () => {
     return Promise.resolve()
@@ -230,42 +199,6 @@ defineExpose({
             登入失败
           </el-radio-button>
         </el-radio-group>
-
-        <el-select
-          v-model="selectedLevel"
-          placeholder="事件级别"
-          clearable
-          style="width: 120px"
-        >
-          <el-option
-            v-for="level in levels"
-            :key="level"
-            :label="level"
-            :value="level"
-          />
-        </el-select>
-        
-        <el-select
-          v-model="selectedChannel"
-          placeholder="事件通道"
-          clearable
-          style="width: 150px"
-        >
-          <el-option
-            v-for="channel in channels"
-            :key="channel"
-            :label="channel"
-            :value="channel"
-          />
-        </el-select>
-        
-        <el-button
-          type="primary"
-          :icon="Download"
-          @click="exportEvents"
-        >
-          导出数据
-        </el-button>
       </div>
     </div>
 
@@ -277,67 +210,86 @@ defineExpose({
       height="calc(100vh - 250px)"
       border
       @row-click="handleRowClick"
+      :cell-style="{ padding: '4px 0' }"
+      :header-cell-style="{ padding: '8px 0' }"
+      class="custom-table"
     >
       <el-table-column
         prop="time"
         label="时间"
-        width="180"
+        width="150"
         sortable
       />
       
       <el-table-column
         prop="event_id"
         label="事件ID"
-        width="100"
+        width="80"
         sortable
       />
       
       <el-table-column
+        prop="channel"
+        label="事件通道"
+        width="120"
+      />
+      
+      <el-table-column
         label="登入类型"
-        width="150"
+        width="120"
       >
         <template #default="{ row }">
           {{ getLogonTypeDescription(row) }}
         </template>
       </el-table-column>
-      
+
       <el-table-column
-        prop="level"
-        label="级别"
-        width="100"
+        label="用户名"
+        width="120"
       >
         <template #default="{ row }">
-          <el-tag
-            :type="getLevelType(row.level)"
-            effect="dark"
-          >
-            {{ row.level }}
-          </el-tag>
+          <div v-if="[4624, 4648, 4625, 4647].includes(row.event_id)">
+            {{ row.event_data?.TargetUserName || '-' }}
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="域名"
+        width="120"
+      >
+        <template #default="{ row }">
+          <div v-if="[4624, 4648, 4625, 4647].includes(row.event_id)">
+            {{ row.event_data?.TargetDomainName || '-' }}
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="来源IP"
+        width="120"
+      >
+        <template #default="{ row }">
+          <div v-if="[4624, 4648, 4625, 4647].includes(row.event_id)">
+            {{ row.event_data?.IpAddress || '-' }}
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="工作站"
+        width="120"
+      >
+        <template #default="{ row }">
+          <div v-if="[4624, 4648, 4625, 4647].includes(row.event_id)">
+            {{ row.event_data?.WorkstationName || '-' }}
+          </div>
         </template>
       </el-table-column>
       
       <el-table-column
-        prop="channel"
-        label="通道"
-        width="150"
-      />
-      
-      <el-table-column
-        prop="provider"
-        label="提供者"
-        width="150"
-      />
-      
-      <el-table-column
-        prop="description"
-        label="描述"
-        min-width="200"
-        show-overflow-tooltip
-      />
-      
-      <el-table-column
         label="详细信息"
-        width="100"
+        width="80"
         fixed="right"
       >
         <template #default="{ row }">
@@ -346,7 +298,7 @@ defineExpose({
             link
             @click="handleRowClick(row)"
           >
-            查看详情
+            查看
           </el-button>
         </template>
       </el-table-column>
@@ -390,16 +342,17 @@ defineExpose({
     </el-table>
 
     <!-- 分页器 -->
-    <el-pagination
-      v-if="total > pageSize"
-      background
-      layout="prev, pager, next"
-      :total="total"
-      :current-page="currentPage"
-      :page-size="pageSize"
-      @current-change="handlePageChange"
-      @size-change="handleSizeChange"
-    />
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
+    </div>
 
     <!-- 事件详情对话框 -->
     <el-dialog
@@ -415,7 +368,6 @@ defineExpose({
         <el-descriptions-item label="级别 Level">
           <el-tag :type="getLevelType(selectedEvent?.level)">{{ selectedEvent?.level }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="通道 Channel">{{ selectedEvent?.channel }}</el-descriptions-item>
         <el-descriptions-item label="计算机 Computer">{{ selectedEvent?.computer }}</el-descriptions-item>
         <el-descriptions-item label="用户ID UserID">{{ selectedEvent?.user_id }}</el-descriptions-item>
         <el-descriptions-item label="事件记录ID EventRecordID">{{ selectedEvent?.event_record_id }}</el-descriptions-item>
@@ -427,6 +379,9 @@ defineExpose({
         <el-descriptions-item label="进程ID ProcessID">{{ selectedEvent?.process_id }}</el-descriptions-item>
         <el-descriptions-item label="线程ID ThreadID">{{ selectedEvent?.thread_id }}</el-descriptions-item>
       </el-descriptions>
+
+      <el-divider>描述 Description</el-divider>
+      <div class="description-content">{{ selectedEvent?.description }}</div>
 
       <el-divider>消息 Message</el-divider>
       <div class="message-content">{{ selectedEvent?.message }}</div>
@@ -463,9 +418,6 @@ defineExpose({
           {{ value }}
         </el-descriptions-item>
       </el-descriptions>
-
-      <el-divider>描述 Description</el-divider>
-      <div class="description-content">{{ selectedEvent?.description }}</div>
     </el-dialog>
   </div>
 </template>
@@ -547,32 +499,135 @@ defineExpose({
   font-size: 14px;
 }
 
-:deep(.el-table) {
-  --el-table-border-color: #e4e7ed;
-  --el-table-header-bg-color: #f5f7fa;
+:deep(.custom-table) {
+  --el-table-border-color: #ebeef5;
+  --el-table-header-bg-color: #f8fafc;
+  --el-table-row-height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-:deep(.el-table__expanded-cell) {
-  background: #f8f9fa;
+:deep(.custom-table .el-table__header) {
+  background: #f8fafc;
 }
 
-:deep(.el-descriptions) {
-  margin-bottom: 16px;
+:deep(.custom-table .el-table__header th) {
+  background: #f8fafc;
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-:deep(.el-descriptions__label) {
-  width: 120px;
+:deep(.custom-table .el-table__row) {
+  height: 40px;
+  transition: all 0.2s ease;
+}
+
+:deep(.custom-table .el-table__row:hover) {
+  background-color: #f1f5f9 !important;
+}
+
+:deep(.custom-table .el-table__row td) {
+  border-bottom: 1px solid #f1f5f9;
+  color: #4b5563;
+  font-size: 13px;
+}
+
+:deep(.custom-table .cell) {
+  padding: 0 8px;
+}
+
+:deep(.custom-table .el-button--primary.is-link) {
+  font-size: 13px;
+  padding: 2px 4px;
+}
+
+:deep(.custom-table .el-table__expand-icon) {
+  color: #6b7280;
+}
+
+:deep(.custom-table .el-table__expand-icon--expanded) {
+  transform: rotate(90deg);
+}
+
+:deep(.custom-table .el-table__expanded-cell) {
+  background: #f8fafc;
+  padding: 16px;
+}
+
+:deep(.custom-table .el-table__expanded-cell .el-descriptions) {
+  margin-bottom: 12px;
+}
+
+:deep(.custom-table .el-table__expanded-cell .el-descriptions__label) {
+  color: #6b7280;
   font-weight: 500;
 }
 
+:deep(.custom-table .el-table__expanded-cell .el-descriptions__content) {
+  color: #1f2937;
+}
+
+:deep(.custom-table .el-tag) {
+  border-radius: 4px;
+  padding: 0 6px;
+  height: 20px;
+  line-height: 18px;
+  font-size: 12px;
+}
+
+:deep(.custom-table .el-tag--dark) {
+  border: none;
+}
+
+:deep(.custom-table .el-tag--success) {
+  background-color: #10b981;
+}
+
+:deep(.custom-table .el-tag--warning) {
+  background-color: #f59e0b;
+}
+
+:deep(.custom-table .el-tag--danger) {
+  background-color: #ef4444;
+}
+
+:deep(.custom-table .el-tag--info) {
+  background-color: #6b7280;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 0;
+}
+
 :deep(.el-pagination) {
-  margin-top: 16px;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --el-pagination-button-color: #409EFF;
+  --el-pagination-hover-color: #66b1ff;
+}
+
+:deep(.el-pagination .el-select .el-input) {
+  width: 110px;
+}
+
+:deep(.el-pagination .el-pagination__total) {
+  margin-right: 16px;
+}
+
+:deep(.el-pagination .el-pagination__sizes) {
+  margin-right: 16px;
+}
+
+:deep(.el-pagination .el-pagination__jump) {
+  margin-left: 16px;
+}
+
+:deep(.el-pagination .el-pagination__jump .el-input__inner) {
+  text-align: center;
 }
 
 .message-content,
@@ -588,5 +643,22 @@ defineExpose({
 
 .el-divider {
   margin: 20px 0;
+}
+
+.login-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.login-info .label {
+  color: #909399;
+  font-weight: 500;
+}
+
+.login-info .value {
+  color: #303133;
 }
 </style>
