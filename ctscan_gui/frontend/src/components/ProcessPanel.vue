@@ -26,6 +26,7 @@ const total = ref(0)
 const sortProp = ref('cpu_percent')
 const sortOrder = ref('descending')
 const loading = ref(false)
+const isFirstLoad = ref(true)
 
 // 筛选条件
 const filters = ref({
@@ -132,6 +133,23 @@ const handleSortChange = ({ prop, order }: { prop: string, order: string }) => {
 }
 
 const refresh = () => {
+  // 如果不是第一次加载，直接返回
+  if (!isFirstLoad.value) {
+    return
+  }
+  
+  loading.value = true
+  GetAllProcesses().then(list => {
+    processes.value = list
+    total.value = list.length
+    isFirstLoad.value = false
+  }).finally(() => {
+    loading.value = false
+  })
+}
+
+// 强制刷新方法
+const forceRefresh = () => {
   loading.value = true
   GetAllProcesses().then(list => {
     processes.value = list
@@ -161,7 +179,7 @@ onMounted(() => {
   refresh()
 })
 
-defineExpose({ refresh })
+defineExpose({ refresh, forceRefresh })
 </script>
 
 <template>
@@ -170,14 +188,25 @@ defineExpose({ refresh })
       <el-icon :size="20" color="#409EFF"><Monitor /></el-icon>
       <h2>进程信息</h2>
       <span class="total-count">共 {{ total }} 个进程</span>
-      <el-button 
-        type="primary" 
-        link 
-        @click="resetFilters"
-        class="reset-button"
-      >
-        重置筛选
-      </el-button>
+      <div class="header-actions">
+        <el-button 
+          type="primary" 
+          link 
+          @click="resetFilters"
+          class="reset-button"
+        >
+          重置筛选
+        </el-button>
+        <el-button 
+          type="primary" 
+          link 
+          @click="forceRefresh"
+          :loading="loading"
+          class="refresh-button"
+        >
+          刷新
+        </el-button>
+      </div>
     </div>
 
     <el-table 
@@ -194,7 +223,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="pid" 
         label="PID" 
-        width="80"
+        width="70"
         align="center"
         resizable
       >
@@ -217,7 +246,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="name" 
         label="进程名" 
-        min-width="120"
+        min-width="100"
         resizable
         show-overflow-tooltip
       >
@@ -243,7 +272,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="exe" 
         label="可执行文件路径" 
-        min-width="200"
+        min-width="180"
         resizable
         show-overflow-tooltip
       >
@@ -277,7 +306,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="signature" 
         label="签名信息" 
-        min-width="200"
+        min-width="150"
         resizable
         show-overflow-tooltip
       >
@@ -304,7 +333,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="ppid" 
         label="父PID" 
-        width="80"
+        width="70"
         align="center"
         resizable
       >
@@ -327,7 +356,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="parent_name" 
         label="父进程名" 
-        min-width="120"
+        min-width="100"
         resizable
         show-overflow-tooltip
       >
@@ -354,7 +383,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="md5" 
         label="MD5" 
-        min-width="150"
+        min-width="120"
         resizable
         show-overflow-tooltip
       >
@@ -378,7 +407,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="cpu_percent" 
         label="CPU使用率" 
-        width="100"
+        width="90"
         align="center"
         sortable="custom"
         resizable
@@ -396,7 +425,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="mem_percent" 
         label="内存使用率" 
-        width="100"
+        width="90"
         align="center"
         sortable="custom"
         resizable
@@ -414,7 +443,7 @@ defineExpose({ refresh })
       <el-table-column 
         prop="create_time" 
         label="创建时间" 
-        min-width="150"
+        min-width="140"
         sortable
         resizable
         show-overflow-tooltip
@@ -669,7 +698,15 @@ defineExpose({ refresh })
   color: #606266;
 }
 
-.reset-button {
-  margin-left: 16px;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+.reset-button,
+.refresh-button {
+  margin-left: 0;
 }
 </style> 

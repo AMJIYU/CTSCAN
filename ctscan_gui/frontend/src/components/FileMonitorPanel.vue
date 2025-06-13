@@ -186,7 +186,7 @@ onMounted(async () => {
         size="small"
         v-if="files.length > 0"
       >
-        <el-table-column prop="path" label="文件路径" min-width="300">
+        <el-table-column prop="path" label="文件路径" min-width="130">
           <template #header>
             <div class="table-header">
               <span>文件路径</span>
@@ -218,7 +218,7 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="修改时间" min-width="180" sortable :sort-method="(a, b) => sortByTime(a.mod_time, b.mod_time)">
+        <el-table-column label="修改时间" min-width="120" sortable :sort-method="(a, b) => sortByTime(a.mod_time, b.mod_time)">
           <template #default="{ row }">
             <div class="time-cell">
               <el-icon><Timer /></el-icon>
@@ -227,7 +227,7 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="创建时间" min-width="180" sortable :sort-method="(a, b) => sortByTime(a.create_time, b.create_time)">
+        <el-table-column label="创建时间" min-width="120" sortable :sort-method="(a, b) => sortByTime(a.create_time, b.create_time)">
           <template #default="{ row }">
             <div class="time-cell">
               <el-icon><Timer /></el-icon>
@@ -236,7 +236,7 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="访问时间" min-width="180" sortable :sort-method="(a, b) => sortByTime(a.access_time, b.access_time)">
+        <el-table-column label="访问时间" min-width="120" sortable :sort-method="(a, b) => sortByTime(a.access_time, b.access_time)">
           <template #default="{ row }">
             <div class="time-cell">
               <el-icon><Timer /></el-icon>
@@ -245,7 +245,7 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="属性修改时间" min-width="180" sortable :sort-method="(a, b) => sortByTime(a.change_time, b.change_time)">
+        <el-table-column label="属性修改时间" min-width="120" sortable :sort-method="(a, b) => sortByTime(a.change_time, b.change_time)">
           <template #default="{ row }">
             <div class="time-cell">
               <el-icon><Timer /></el-icon>
@@ -254,7 +254,7 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="类型" width="100">
+        <el-table-column label="类型" width="60">
           <template #default="{ row }">
             <el-tag 
               :type="getFileTypeTag(row).type"
@@ -265,14 +265,14 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="大小" width="100">
+        <el-table-column label="大小" width="90">
           <template #default="{ row }">
             <span v-if="!row.is_dir">{{ formatFileSize(row.size) }}</span>
             <span v-else>-</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="权限" width="120">
+        <el-table-column label="权限" width="100">
           <template #default="{ row }">
             <el-tooltip
               :content="row.mode"
@@ -284,7 +284,7 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="所有者" width="180">
+        <el-table-column label="所有者" width="150">
           <template #default="{ row }">
             <div class="owner-cell">
               <el-icon><User /></el-icon>
