@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineExpose } from 'vue'
 import { Timer, User, Location, InfoFilled, Monitor } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetRDPLoginLogs, SaveRDPLogin } from '../../wailsjs/go/pkg/App'
@@ -57,32 +57,24 @@ const handleSizeChange = (val: number) => {
 }
 
 // 刷新日志
-const refreshLogs = async () => {
+const refresh = async () => {
   loading.value = true
   try {
-    const result = await GetRDPLoginLogs()
-    // 确保返回的是数组，即使是空数组
-    logs.value = Array.isArray(result) ? result : []
-    // 保存到数据库
-    await SaveRDPLogin(logs.value).catch(error => {
-      console.error('保存RDP登录日志到数据库失败:', error)
-    })
+    const response = await GetRDPLoginLogs()
+    logs.value = response
+    await SaveRDPLogin(response)
   } catch (error) {
-    console.error('获取RDP登录日志失败:', error)
-    ElMessage({
-      type: 'error',
-      message: '获取RDP登录日志失败',
-      duration: 2000
-    })
-    logs.value = []
+    console.error('获取RDP登录记录失败:', error)
   } finally {
     loading.value = false
   }
 }
 
 onMounted(async () => {
-  await refreshLogs()
+  await refresh()
 })
+
+defineExpose({ refresh })
 </script>
 
 <template>
@@ -103,7 +95,7 @@ onMounted(async () => {
         <el-button 
           type="primary" 
           link 
-          @click="refreshLogs"
+          @click="refresh"
           :loading="loading"
         >
           刷新
