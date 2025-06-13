@@ -27,3 +27,27 @@ export function GetStartupItems():Promise<Array<pkg.StartupItem>>;
 export function GetSystemInfo():Promise<pkg.SystemInfo>;
 
 export function GetUserInfo():Promise<pkg.UserInfo>;
+
+export function SaveCronTasks(arg1:Array<pkg.CronTask>):Promise<void>;
+
+export function SaveFileMonitor(arg1:Array<pkg.FileInfo>):Promise<void>;
+
+export function SaveLoginFailed(arg1:Array<pkg.LoginFailed>):Promise<void>;
+
+export function SaveLoginSuccess(arg1:Array<pkg.LoginSuccess>):Promise<void>;
+
+export function SaveNetworkConnections(arg1:Array<pkg.NetworkConn>):Promise<void>;
+
+export function SaveNetworkInfo(arg1:pkg.NetworkInfo):Promise<void>;
+
+export function SaveProcessInfo(arg1:Array<pkg.ProcInfo>):Promise<void>;
+
+export function SaveRDPLogin(arg1:Array<pkg.RDPLoginInfo>):Promise<void>;
+
+export function SaveShellHistory(arg1:Array<pkg.ShellHistory>):Promise<void>;
+
+export function SaveStartupItems(arg1:Array<pkg.StartupItem>):Promise<void>;
+
+export function SaveSystemInfo(arg1:pkg.SystemInfo):Promise<void>;
+
+export function SaveUserInfo(arg1:pkg.UserInfo):Promise<void>;

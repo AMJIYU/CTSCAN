@@ -4,6 +4,7 @@ go 1.23.6
 
 require (
 	github.com/go-ole/go-ole v1.3.0
+	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/shirou/gopsutil/v4 v4.25.5
 	github.com/wailsapp/wails/v2 v2.10.1
 )

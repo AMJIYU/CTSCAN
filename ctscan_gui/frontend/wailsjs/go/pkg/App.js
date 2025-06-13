@@ -53,3 +53,51 @@ export function GetSystemInfo() {
 export function GetUserInfo() {
   return window['go']['pkg']['App']['GetUserInfo']();
 }
+
+export function SaveCronTasks(arg1) {
+  return window['go']['pkg']['App']['SaveCronTasks'](arg1);
+}
+
+export function SaveFileMonitor(arg1) {
+  return window['go']['pkg']['App']['SaveFileMonitor'](arg1);
+}
+
+export function SaveLoginFailed(arg1) {
+  return window['go']['pkg']['App']['SaveLoginFailed'](arg1);
+}
+
+export function SaveLoginSuccess(arg1) {
+  return window['go']['pkg']['App']['SaveLoginSuccess'](arg1);
+}
+
+export function SaveNetworkConnections(arg1) {
+  return window['go']['pkg']['App']['SaveNetworkConnections'](arg1);
+}
+
+export function SaveNetworkInfo(arg1) {
+  return window['go']['pkg']['App']['SaveNetworkInfo'](arg1);
+}
+
+export function SaveProcessInfo(arg1) {
+  return window['go']['pkg']['App']['SaveProcessInfo'](arg1);
+}
+
+export function SaveRDPLogin(arg1) {
+  return window['go']['pkg']['App']['SaveRDPLogin'](arg1);
+}
+
+export function SaveShellHistory(arg1) {
+  return window['go']['pkg']['App']['SaveShellHistory'](arg1);
+}
+
+export function SaveStartupItems(arg1) {
+  return window['go']['pkg']['App']['SaveStartupItems'](arg1);
+}
+
+export function SaveSystemInfo(arg1) {
+  return window['go']['pkg']['App']['SaveSystemInfo'](arg1);
+}
+
+export function SaveUserInfo(arg1) {
+  return window['go']['pkg']['App']['SaveUserInfo'](arg1);
+}

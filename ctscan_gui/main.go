@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"log"
 
 	"ctscan_gui/pkg"
 
@@ -15,10 +16,13 @@ var assets embed.FS
 
 func main() {
 	// 创建一个 App 实例
-	app := pkg.NewApp()
+	app, err := pkg.NewApp()
+	if err != nil {
+		log.Fatalf("初始化应用失败: %v", err)
+	}
 
 	// 使用配置创建应用
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:     "CTScan 应急响应工具箱", // 设置窗口标题
 		Width:     1280,
 		Height:    800,
@@ -35,6 +39,6 @@ func main() {
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		log.Fatalf("运行应用失败: %v", err)
 	}
 }
