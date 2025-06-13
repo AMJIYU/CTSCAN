@@ -3,6 +3,7 @@ module ctscan_gui
 go 1.23.6
 
 require (
+	github.com/0xrawsec/golang-evtx v1.2.9
 	github.com/go-ole/go-ole v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/shirou/gopsutil/v4 v4.25.5
@@ -12,6 +13,7 @@ require (
 require github.com/pkg/errors v0.9.1 // indirect
 
 require (
+	github.com/0xrawsec/golang-utils v1.3.0 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect

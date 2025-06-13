@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import SystemInfoPanel from './SystemInfoPanel.vue'
 import UserInfoPanel from './UserInfoPanel.vue'
 import NetworkInfoPanel from './NetworkInfoPanel.vue'
@@ -11,6 +11,7 @@ import LoginFailedPanel from './LoginFailedPanel.vue'
 import ShellHistoryPanel from './ShellHistoryPanel.vue'
 import FileMonitorPanel from './FileMonitorPanel.vue'
 import RdploginPanel from './RdploginPanel.vue'
+import EvtxPanel from './EvtxPanel.vue'
 import {
   Monitor,
   User,
@@ -26,6 +27,7 @@ import {
   Document
 } from '@element-plus/icons-vue'
 import { ElMessage, ElLoading } from 'element-plus'
+import { ParseEVTXFile, SelectAndParseEVTXFile } from '../../wailsjs/go/pkg/App'
 
 // 使用ref引用每个选项卡组件
 const systemInfoRef = ref<InstanceType<typeof SystemInfoPanel> | null>(null);
@@ -39,6 +41,7 @@ const loginFailedRef = ref();
 const shellHistoryRef = ref();
 const fileMonitorRef = ref<InstanceType<typeof FileMonitorPanel> | null>(null);
 const rdploginRef = ref<InstanceType<typeof RdploginPanel> | null>(null);
+const evtxRef = ref<InstanceType<typeof EvtxPanel> | null>(null);
 
 // 当前激活的面板
 const activePanel = ref('system');
@@ -55,7 +58,8 @@ const panels = [
   { id: 'login-failed', name: '登入失败', icon: Warning, component: LoginFailedPanel },
   { id: 'shell-history', name: '命令记录', icon: Operation, component: ShellHistoryPanel },
   { id: 'rdp', name: 'RDP登入', icon: RdpIcon, component: RdploginPanel },
-  { id: 'file-monitor', name: '文件监控', icon: Document, component: FileMonitorPanel }
+  { id: 'file-monitor', name: '文件监控', icon: Document, component: FileMonitorPanel },
+  { id: 'evtx', name: 'EVTX日志', icon: Document, component: EvtxPanel }
 ];
 
 // 添加重新获取信息的方法
@@ -79,7 +83,8 @@ const refreshInfo = async () => {
       loginFailedRef.value?.refresh(),
       shellHistoryRef.value?.refresh(),
       rdploginRef.value?.refresh(),
-      fileMonitorRef.value?.refresh()
+      fileMonitorRef.value?.refresh(),
+      evtxRef.value?.refresh()
     ])
     
     ElMessage({
@@ -125,6 +130,9 @@ const handlePanelChange = (panel: string) => {
     case 'file-monitor':
       fileMonitorRef.value?.refresh()
       break
+    case 'evtx':
+      evtxRef.value?.refresh()
+      break
   }
 }
 
@@ -136,6 +144,51 @@ const refreshCurrentTab = () => {
     systemInfoRef.value.refresh()
   } else if (activeTab.value === 'network' && networkInfoRef.value) {
     networkInfoRef.value.refresh()
+  }
+}
+
+// 处理文件选择
+const handleFileSelect = async () => {
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在解析EVTX文件...',
+    background: 'rgba(255, 255, 255, 0.7)',
+  })
+
+  try {
+    // 调用后端弹窗并解析
+    console.log('开始调用 SelectAndParseEVTXFile')
+    const result = await SelectAndParseEVTXFile()
+    console.log('解析结果:', result)
+    
+    if (!result || result.length === 0) {
+      throw new Error('未解析到任何事件')
+    }
+    
+    // 切换到 EVTX 面板
+    console.log('切换到 EVTX 面板')
+    activePanel.value = 'evtx'
+    
+    // 等待面板加载完成
+    await nextTick()
+    
+    // 传递数据给 EvtxPanel
+    console.log('准备传递数据给 EvtxPanel')
+    if (evtxRef.value) {
+      console.log('EvtxPanel 引用存在，调用 setEvents')
+      await evtxRef.value.setEvents(result)
+    } else {
+      console.error('EvtxPanel 引用不存在')
+    }
+  } catch (error) {
+    console.error('解析EVTX文件失败:', error)
+    ElMessage({
+      type: 'error',
+      message: error instanceof Error ? error.message : '解析EVTX文件失败',
+      duration: 2000
+    })
+  } finally {
+    loading.close()
   }
 }
 
@@ -165,10 +218,10 @@ onMounted(() => {
            <div class="card-content">
             <el-icon :size="48" color="#67C23A"><UploadFilled /></el-icon>
             <div class="text-content">
-              <h3>上传文件分析</h3>
-              <p>选择文件进行分析</p>
+              <h3>上传日志分析</h3>
+              <p>选择Windows EVTX文件进行分析</p>
             </div>
-            <el-button>点击上传文件</el-button>
+            <el-button type="primary" @click="handleFileSelect">选择文件</el-button>
           </div>
         </el-card>
       </el-col>
@@ -203,6 +256,7 @@ onMounted(() => {
         <ShellHistoryPanel v-if="activePanel === 'shell-history'" ref="shellHistoryRef" />
         <RdploginPanel v-if="activePanel === 'rdp'" ref="rdploginRef" />
         <FileMonitorPanel v-if="activePanel === 'file-monitor'" ref="fileMonitorRef" />
+        <EvtxPanel v-if="activePanel === 'evtx'" ref="evtxRef" />
       </div>
     </div>
   </div>
@@ -431,5 +485,11 @@ onMounted(() => {
   justify-content: center;
   height: 100%;
   min-height: 400px;
+}
+
+.input-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 </style>

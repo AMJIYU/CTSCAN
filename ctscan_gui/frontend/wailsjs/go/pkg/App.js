@@ -54,8 +54,16 @@ export function GetUserInfo() {
   return window['go']['pkg']['App']['GetUserInfo']();
 }
 
+export function ParseEVTXFile(arg1) {
+  return window['go']['pkg']['App']['ParseEVTXFile'](arg1);
+}
+
 export function SaveCronTasks(arg1) {
   return window['go']['pkg']['App']['SaveCronTasks'](arg1);
+}
+
+export function SaveEVTXFile(arg1) {
+  return window['go']['pkg']['App']['SaveEVTXFile'](arg1);
 }
 
 export function SaveFileMonitor(arg1) {
@@ -100,4 +108,8 @@ export function SaveSystemInfo(arg1) {
 
 export function SaveUserInfo(arg1) {
   return window['go']['pkg']['App']['SaveUserInfo'](arg1);
+}
+
+export function SelectAndParseEVTXFile() {
+  return window['go']['pkg']['App']['SelectAndParseEVTXFile']();
 }

@@ -32,6 +32,58 @@ export namespace pkg {
 	        this.usage = source["usage"];
 	    }
 	}
+	export class EVTXEvent {
+	    time: string;
+	    event_id: number;
+	    provider: string;
+	    level: string;
+	    channel: string;
+	    computer: string;
+	    user_id: string;
+	    description: string;
+	    data: Record<string, any>;
+	    event_record_id: number;
+	    version: number;
+	    qualifiers: number;
+	    task: number;
+	    opcode: number;
+	    keywords: string;
+	    process_id: number;
+	    thread_id: number;
+	    message: string;
+	    system_info: Record<string, any>;
+	    event_data: Record<string, any>;
+	    user_data: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new EVTXEvent(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.time = source["time"];
+	        this.event_id = source["event_id"];
+	        this.provider = source["provider"];
+	        this.level = source["level"];
+	        this.channel = source["channel"];
+	        this.computer = source["computer"];
+	        this.user_id = source["user_id"];
+	        this.description = source["description"];
+	        this.data = source["data"];
+	        this.event_record_id = source["event_record_id"];
+	        this.version = source["version"];
+	        this.qualifiers = source["qualifiers"];
+	        this.task = source["task"];
+	        this.opcode = source["opcode"];
+	        this.keywords = source["keywords"];
+	        this.process_id = source["process_id"];
+	        this.thread_id = source["thread_id"];
+	        this.message = source["message"];
+	        this.system_info = source["system_info"];
+	        this.event_data = source["event_data"];
+	        this.user_data = source["user_data"];
+	    }
+	}
 	export class FileInfo {
 	    path: string;
 	    exists: boolean;

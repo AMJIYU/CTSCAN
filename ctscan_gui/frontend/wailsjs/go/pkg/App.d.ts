@@ -28,7 +28,11 @@ export function GetSystemInfo():Promise<pkg.SystemInfo>;
 
 export function GetUserInfo():Promise<pkg.UserInfo>;
 
+export function ParseEVTXFile(arg1:string):Promise<Array<pkg.EVTXEvent>>;
+
 export function SaveCronTasks(arg1:Array<pkg.CronTask>):Promise<void>;
+
+export function SaveEVTXFile(arg1:string):Promise<string>;
 
 export function SaveFileMonitor(arg1:Array<pkg.FileInfo>):Promise<void>;
 
@@ -51,3 +55,5 @@ export function SaveStartupItems(arg1:Array<pkg.StartupItem>):Promise<void>;
 export function SaveSystemInfo(arg1:pkg.SystemInfo):Promise<void>;
 
 export function SaveUserInfo(arg1:pkg.UserInfo):Promise<void>;
+
+export function SelectAndParseEVTXFile():Promise<Array<pkg.EVTXEvent>>;
