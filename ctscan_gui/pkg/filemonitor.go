@@ -1,12 +1,8 @@
 package pkg
 
 import (
-	"fmt"
 	"os"
-	"os/user"
 	"runtime"
-	"strconv"
-	"syscall"
 	"time"
 )
 
@@ -238,17 +234,7 @@ func (a *App) GetSensitiveFileInfo() []FileInfo {
 		fileInfo.Permissions = info.Mode().Perm().String()
 
 		// 获取系统特定的文件信息
-		if sysInfo, ok := info.Sys().(*syscall.Stat_t); ok {
-			// 创建时间
-			fileInfo.CreateTime = time.Unix(sysInfo.Birthtimespec.Sec, sysInfo.Birthtimespec.Nsec)
-			// 访问时间
-			fileInfo.AccessTime = time.Unix(sysInfo.Atimespec.Sec, sysInfo.Atimespec.Nsec)
-			// 属性修改时间
-			fileInfo.ChangeTime = time.Unix(sysInfo.Ctimespec.Sec, sysInfo.Ctimespec.Nsec)
-			// 所有者和组信息
-			fileInfo.Owner = getUsername(sysInfo.Uid)
-			fileInfo.Group = getGroupname(sysInfo.Gid)
-		}
+		setPlatformFileInfo(info, &fileInfo)
 
 		fileInfos = append(fileInfos, fileInfo)
 	}
@@ -256,41 +242,11 @@ func (a *App) GetSensitiveFileInfo() []FileInfo {
 	return fileInfos
 }
 
-// 获取用户名
-func getUsername(uid uint32) string {
-	switch runtime.GOOS {
-	case "linux", "darwin":
-		u, err := user.LookupId(strconv.FormatUint(uint64(uid), 10))
-		if err == nil {
-			return u.Username
-		}
-	case "windows":
-		// Windows 系统下，尝试获取用户名
-		u, err := user.LookupId(strconv.FormatUint(uint64(uid), 10))
-		if err == nil {
-			return u.Username
-		}
-	}
-	// 如果无法获取用户名，返回 UID
-	return fmt.Sprintf("用户 %d", uid)
-}
-
-// 获取组名
-func getGroupname(gid uint32) string {
-	switch runtime.GOOS {
-	case "linux", "darwin":
-		// 在 Linux/Unix 系统中，尝试获取组名
-		group, err := user.LookupGroupId(strconv.FormatUint(uint64(gid), 10))
-		if err == nil {
-			return group.Name
-		}
-	case "windows":
-		// Windows 系统下，组名通常是 "None" 或 "Users"
-		if gid == 0 {
-			return "管理员组"
-		}
-		return "普通用户组"
-	}
-	// 如果无法获取组名，返回 GID
-	return fmt.Sprintf("组 %d", gid)
+// 获取系统特定的文件信息
+func setPlatformFileInfo(info os.FileInfo, fileInfo *FileInfo) {
+	fileInfo.CreateTime = info.ModTime()
+	fileInfo.AccessTime = info.ModTime()
+	fileInfo.ChangeTime = info.ModTime()
+	fileInfo.Owner = "SYSTEM"
+	fileInfo.Group = "Users"
 }
