@@ -34,3 +34,11 @@ ctscan_gui/frontend/src/components
 ```
 ctscan_gui/pkg
 ```
+4、开发与编译
+```shell
+## 开发环境
+go mod tidy
+wails dev 
+##编译后默认路径ctscan_gui/build/bin
+wails build 
+```
