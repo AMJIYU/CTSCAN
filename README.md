@@ -9,18 +9,12 @@
   
 
 ## 应用部分使用截图
-images/系统基本信息.png
-immage/用户信息.png
-images/网络信息.png
-images/开机启动项.png
-images/进程排查.png
+![系统基本信息](images/系统基本信息.png)
+![用户信息](images/用户信息.png)
+![网络信息](images/网络信息.png)
+![开机启动项](images/开机启动项.png)
+![进程排查](images/进程排查.png)
 
 
 ### GIT 命令 推送到远程仓库
-```sh
-## 借助cursor AI 生成
-git add . &&  git commit -m  "cursor"
-git branch -M main
-git push -u origin main
-````
-
+```
