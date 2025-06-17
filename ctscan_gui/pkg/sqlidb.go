@@ -389,45 +389,45 @@ func (a *App) SaveCronTasks(tasks []CronTask) error {
 	return tx.Commit()
 }
 
-// // SaveFileMonitor 保存文件监控信息到数据库
-// func (a *App) SaveFileMonitor(files []FileInfo) error {
-// 	tx, err := a.db.Begin()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer tx.Rollback()
+// SaveFileMonitor 保存文件监控信息到数据库
+func (a *App) SaveFileMonitor(files []FileInfo) error {
+	tx, err := a.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
-// 	query := `
-// 	INSERT INTO file_monitor (
-// 		path, file_exists, size, mode, mod_time,
-// 		create_time, access_time, change_time, is_dir,
-// 		is_symlink, owner, group_name, permissions, description
-// 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `
+	INSERT INTO file_monitor (
+		path, file_exists, size, mode, mod_time,
+		create_time, access_time, change_time, is_dir,
+		is_symlink, owner, group_name, permissions, description
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-// 	for _, file := range files {
-// 		_, err = tx.Exec(query,
-// 			file.Path,
-// 			file.Exists,
-// 			file.Size,
-// 			file.Mode,
-// 			file.ModTime,
-// 			file.CreateTime,
-// 			file.AccessTime,
-// 			file.ChangeTime,
-// 			file.IsDir,
-// 			file.IsSymlink,
-// 			file.Owner,
-// 			file.Group,
-// 			file.Permissions,
-// 			file.Description,
-// 		)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
+	for _, file := range files {
+		_, err = tx.Exec(query,
+			file.Path,
+			file.Exists,
+			file.Size,
+			file.Mode,
+			file.ModTime,
+			file.CreateTime,
+			file.AccessTime,
+			file.ChangeTime,
+			file.IsDir,
+			file.IsSymlink,
+			file.Owner,
+			file.Group,
+			file.Permissions,
+			file.Description,
+		)
+		if err != nil {
+			return err
+		}
+	}
 
-// 	return tx.Commit()
-// }
+	return tx.Commit()
+}
 
 // SaveLoginFailed 保存登录失败记录到数据库
 func (a *App) SaveLoginFailed(records []LoginFailed) error {
