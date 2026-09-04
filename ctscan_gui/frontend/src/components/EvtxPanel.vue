@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref,  computed,  } from 'vue'
-import { ElMessage,  } from 'element-plus'
-import { Search,  Key, Warning } from '@element-plus/icons-vue'
+import { ref, computed, reactive, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Search, Key, Warning, Connection, RefreshLeft } from '@element-plus/icons-vue'
 import { ParseEVTXFile } from '../../wailsjs/go/pkg/App'
 import { pkg } from '../../wailsjs/go/models'
 
@@ -17,29 +17,65 @@ const dialogVisible = ref(false)
 const selectedEvent = ref<pkg.EVTXEvent | null>(null)
 const quickFilter = ref('')
 
+const loginEventIds = [4624, 4625, 4648]
+const humanLogonTypes = new Set(['2', '3', '7', '8', '9', '10', '11'])
+const remoteLogonTypes = new Set(['3', '10'])
+type TagType = '' | 'success' | 'warning' | 'info' | 'danger'
+type ColumnFilterKey = 'time' | 'eventId' | 'eventType' | 'logonType' | 'sourceIp' | 'userName' | 'workstation' | 'subjectUserName' | 'subjectDomain' | 'process'
+
+const columnFilterDefinitions: Array<{ key: ColumnFilterKey; label: string; placeholder: string }> = [
+  { key: 'time', label: '时间', placeholder: '2026-09-03' },
+  { key: 'eventId', label: '事件ID', placeholder: '4624' },
+  { key: 'eventType', label: '事件类型', placeholder: 'RDP 登录成功' },
+  { key: 'logonType', label: '登录类型', placeholder: '10 / RDP' },
+  { key: 'sourceIp', label: '源IP', placeholder: '192.168.17.57' },
+  { key: 'userName', label: '用户名', placeholder: 'jiyu' },
+  { key: 'workstation', label: '工作站', placeholder: 'YU' },
+  { key: 'subjectUserName', label: '主体用户名', placeholder: 'YU$' },
+  { key: 'subjectDomain', label: '主体域', placeholder: 'WORKGROUP' },
+  { key: 'process', label: '进程', placeholder: 'User32' }
+]
+
+const columnFilters = reactive<Record<ColumnFilterKey, string>>({
+  time: '',
+  eventId: '',
+  eventType: '',
+  logonType: '',
+  sourceIp: '',
+  userName: '',
+  workstation: '',
+  subjectUserName: '',
+  subjectDomain: '',
+  process: ''
+})
+
 // 分页相关
 const total = computed(() => filteredEvents.value.length)
+const hasColumnFilters = computed(() => Object.values(columnFilters).some(value => value.trim() !== ''))
 
 // 过滤后的事件列表
 const filteredEvents = computed(() => {
   if (!events.value) {
     return []
   }
-  return events.value.filter(event => {
-    const matchesSearch = searchQuery.value === '' || 
-      event.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      event.provider.toLowerCase().includes(searchQuery.value.toLowerCase())
+  const query = searchQuery.value.trim().toLowerCase()
+  const matched = events.value.filter(event => {
+    const matchesSearch = query === '' || getSearchableEventText(event).includes(query)
     
     // 快速筛选
     let matchesQuickFilter = true
     if (quickFilter.value === 'login-success') {
-      matchesQuickFilter = event.event_id === 4624 || event.event_id === 4648
+      matchesQuickFilter = isHumanLogonSuccess(event)
     } else if (quickFilter.value === 'login-failed') {
-      matchesQuickFilter = event.event_id === 4625 || event.event_id === 4647
+      matchesQuickFilter = event.event_id === 4625
+    } else if (quickFilter.value === 'rdp-login') {
+      matchesQuickFilter = isRemoteLogon(event)
     }
     
-    return matchesSearch && matchesQuickFilter
+    return matchesSearch && matchesQuickFilter && matchesColumnFilters(event)
   })
+
+  return sortEventsByNewest(matched)
 })
 
 // 分页后的事件列表
@@ -48,6 +84,14 @@ const paginatedEvents = computed(() => {
   const end = start + pageSize.value
   return filteredEvents.value.slice(start, end)
 })
+
+watch([searchQuery, quickFilter], () => {
+  currentPage.value = 1
+})
+
+watch(columnFilters, () => {
+  currentPage.value = 1
+}, { deep: true })
 
 // 处理页码变化
 const handlePageChange = (page: number) => {
@@ -109,48 +153,170 @@ const getLevelType = (level: string | undefined) => {
   return styles[level as keyof typeof styles] || ''
 }
 
+const normalizeDisplayValue = (value: unknown) => {
+  if (value === undefined || value === null) return '-'
+  const text = String(value).trim()
+  return text === '' ? '-' : text
+}
+
+const getEventDataValue = (event: pkg.EVTXEvent | null, key: string) => {
+  if (!event?.event_data || typeof event.event_data !== 'object') return '-'
+  return normalizeDisplayValue(event.event_data[key])
+}
+
+const getLogonTypeValue = (event: pkg.EVTXEvent | null) => {
+  return getEventDataValue(event, 'LogonType')
+}
+
+const isLoginEvent = (event: pkg.EVTXEvent | null) => {
+  return !!event && loginEventIds.includes(event.event_id)
+}
+
+const isNoiseAccount = (event: pkg.EVTXEvent) => {
+  const user = getEventDataValue(event, 'TargetUserName').toUpperCase()
+  return user === '-' || user === 'SYSTEM' || user.endsWith('$')
+}
+
+const isHumanLogonSuccess = (event: pkg.EVTXEvent) => {
+  if (event.event_id !== 4624 || isNoiseAccount(event)) return false
+  return humanLogonTypes.has(getLogonTypeValue(event))
+}
+
+const isRemoteLogon = (event: pkg.EVTXEvent) => {
+  if (event.event_id !== 4624 || isNoiseAccount(event)) return false
+  return remoteLogonTypes.has(getLogonTypeValue(event)) && getEventDataValue(event, 'IpAddress') !== '-'
+}
+
+const getSearchableEventText = (event: pkg.EVTXEvent) => {
+  const values = [
+    event.time,
+    event.time_utc,
+    event.time_local,
+    event.event_id,
+    getEventTypeLabel(event),
+    getLogonTypeDisplay(event),
+    event.provider,
+    event.level,
+    event.channel,
+    event.computer,
+    event.user_id,
+    event.description,
+    event.message,
+    ...Object.values(event.event_data || {}),
+    ...Object.values(event.system_info || {}),
+    ...Object.values(event.user_data || {})
+  ]
+  return values.map(normalizeDisplayValue).join(' ').toLowerCase()
+}
+
+const sortEventsByNewest = (list: pkg.EVTXEvent[]) => {
+  return [...list].sort((a, b) => {
+    const timeCompare = normalizeDisplayValue(b.time).localeCompare(normalizeDisplayValue(a.time))
+    if (timeCompare !== 0) return timeCompare
+    return (b.event_record_id || 0) - (a.event_record_id || 0)
+  })
+}
+
+const getEventTypeLabel = (event: pkg.EVTXEvent | null) => {
+  if (!event) return '-'
+  if (event.event_type) return event.event_type
+
+  if (event.event_id === 4624) {
+    const logonType = getLogonTypeValue(event)
+    if (logonType === '10') return 'RDP 登录成功'
+    if (logonType === '3') return '网络登录成功'
+    if (logonType === '2') return '本地登录成功'
+    if (logonType === '5') return '服务登录成功'
+    return '登录成功'
+  }
+  if (event.event_id === 4625) return '登录失败'
+  if (event.event_id === 4648) return '显式凭据登录'
+  if (event.event_id === 4688) return '进程创建'
+  if (event.event_id === 4720) return '用户创建'
+  if (event.event_id === 1102) return '安全日志清除'
+  return '普通安全事件'
+}
+
+const getEventTypeTag = (event: pkg.EVTXEvent | null): TagType => {
+  if (!event) return ''
+  if (event.event_id === 4624) return 'success'
+  if (event.event_id === 4625 || event.event_id === 1102) return 'danger'
+  if ([4648, 4672, 4697, 4698, 4719, 4720, 4724, 4732].includes(event.event_id)) return 'warning'
+  return 'info'
+}
+
+const getEventTypeClass = (event: pkg.EVTXEvent | null) => {
+  return `event-type-tag event-type-tag--${getEventTypeTag(event) || 'info'}`
+}
+
+const getLogonTypeDisplay = (event: pkg.EVTXEvent | null) => {
+  const logonType = getLogonTypeValue(event)
+  if (logonType === '-') return '-'
+  const description = getLogonTypeDescription(event)
+  return description ? `${logonType} / ${description}` : logonType
+}
+
+const getColumnFilterValue = (event: pkg.EVTXEvent, key: ColumnFilterKey) => {
+  switch (key) {
+    case 'time':
+      return normalizeDisplayValue(event.time)
+    case 'eventId':
+      return normalizeDisplayValue(event.event_id)
+    case 'eventType':
+      return getEventTypeLabel(event)
+    case 'logonType':
+      return getLogonTypeDisplay(event)
+    case 'sourceIp':
+      return getEventDataValue(event, 'IpAddress')
+    case 'userName':
+      return getEventDataValue(event, 'TargetUserName')
+    case 'workstation':
+      return getEventDataValue(event, 'WorkstationName')
+    case 'subjectUserName':
+      return getEventDataValue(event, 'SubjectUserName')
+    case 'subjectDomain':
+      return getEventDataValue(event, 'SubjectDomainName')
+    case 'process':
+      return getEventDataValue(event, 'LogonProcessName')
+    default:
+      return '-'
+  }
+}
+
+const matchesColumnFilters = (event: pkg.EVTXEvent) => {
+  return columnFilterDefinitions.every(({ key }) => {
+    const filter = columnFilters[key].trim().toLowerCase()
+    if (filter === '') return true
+    return getColumnFilterValue(event, key).toLowerCase().includes(filter)
+  })
+}
+
+const clearColumnFilters = () => {
+  columnFilterDefinitions.forEach(({ key }) => {
+    columnFilters[key] = ''
+  })
+}
+
 // 获取登入类型描述
 const getLogonTypeDescription = (event: pkg.EVTXEvent | null) => {
-  if (!event) return ''
+  if (!isLoginEvent(event)) return ''
   
-  // 检查是否是登入相关事件
-  if (![4624, 4648, 4625, 4647].includes(event.event_id)) return ''
-  
-  // 调试输出
-  console.log('事件数据:', event.event_data)
-  
-  // 尝试不同的数据访问路径
-  let logonType: string | number | null = null
-  
-  // 尝试直接从 event_data 获取
-  if (event.event_data && typeof event.event_data === 'object') {
-    // 遍历所有键
-    for (const key in event.event_data) {
-      if (key.includes('LogonType')) {
-        const value = event.event_data[key]
-        if (typeof value === 'string' || typeof value === 'number') {
-          logonType = value
-          break
-        }
-      }
-    }
-  }
-  
-  if (!logonType) return ''
+  const logonType = getLogonTypeValue(event)
+  if (logonType === '-') return ''
   
   const logonTypes: { [key: string]: string } = {
-    '2': '本地交互式登入',
-    '3': '网络登入',
-    '4': '批处理登入',
-    '5': '服务登入',
+    '2': '本地交互式登录',
+    '3': '网络登录',
+    '4': '批处理登录',
+    '5': '服务登录',
     '7': '工作站解锁',
-    '8': '网络明文登入',
-    '9': '新凭证登入',
-    '10': '远程交互式登入 (RDP)',
-    '11': '缓存交互式登入'
+    '8': '网络明文登录',
+    '9': '新凭据登录',
+    '10': '远程交互式登录 (RDP)',
+    '11': '缓存交互式登录'
   }
   
-  return logonTypes[String(logonType)] || `未知登入类型 (${logonType})`
+  return logonTypes[logonType] || `未知登入类型 (${logonType})`
 }
 
 // 处理行点击
@@ -163,9 +329,7 @@ const handleRowClick = (row: pkg.EVTXEvent) => {
 defineExpose({
   parseEvtxFile,
   setEvents: (ev: pkg.EVTXEvent[]) => {
-    console.log('EvtxPanel 收到事件数据:', ev)
     events.value = ev
-    console.log('更新后的事件列表:', events.value)
   },
   refresh: () => {
     return Promise.resolve()
@@ -192,13 +356,47 @@ defineExpose({
           <el-radio-button label="">全部</el-radio-button>
           <el-radio-button label="login-success">
             <el-icon><Key /></el-icon>
-            登入成功
+            登录成功
+          </el-radio-button>
+          <el-radio-button label="rdp-login">
+            <el-icon><Connection /></el-icon>
+            RDP登录
           </el-radio-button>
           <el-radio-button label="login-failed">
             <el-icon><Warning /></el-icon>
-            登入失败
+            登录失败
           </el-radio-button>
         </el-radio-group>
+      </div>
+    </div>
+
+    <div class="column-filter-bar">
+      <div class="column-filter-heading">
+        <span>列筛选</span>
+        <el-button
+          :icon="RefreshLeft"
+          size="small"
+          text
+          :disabled="!hasColumnFilters"
+          @click="clearColumnFilters"
+        >
+          清空
+        </el-button>
+      </div>
+      <div class="column-filter-grid">
+        <label
+          v-for="filter in columnFilterDefinitions"
+          :key="filter.key"
+          class="column-filter-item"
+        >
+          <span>{{ filter.label }}</span>
+          <el-input
+            v-model="columnFilters[filter.key]"
+            :placeholder="filter.placeholder"
+            size="small"
+            clearable
+          />
+        </label>
       </div>
     </div>
 
@@ -207,7 +405,7 @@ defineExpose({
       v-loading="loading"
       :data="paginatedEvents"
       style="width: 100%"
-      height="calc(100vh - 250px)"
+      height="calc(100vh - 360px)"
       border
       @row-click="handleRowClick"
       :cell-style="{ padding: '4px 0' }"
@@ -219,6 +417,7 @@ defineExpose({
         label="时间"
         width="150"
         sortable
+        show-overflow-tooltip
       />
       
       <el-table-column
@@ -226,64 +425,88 @@ defineExpose({
         label="事件ID"
         width="80"
         sortable
+        show-overflow-tooltip
       />
-      
+
       <el-table-column
-        prop="channel"
-        label="事件通道"
-        width="120"
-      />
-      
-      <el-table-column
-        label="登入类型"
-        width="120"
+        label="事件类型"
+        width="165"
+        show-overflow-tooltip
       >
         <template #default="{ row }">
-          {{ getLogonTypeDescription(row) }}
+          <el-tag :class="getEventTypeClass(row)" disable-transitions>
+            {{ getEventTypeLabel(row) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      
+      <el-table-column
+        label="登录类型"
+        width="170"
+        show-overflow-tooltip
+      >
+        <template #default="{ row }">
+          {{ getLogonTypeDisplay(row) }}
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="源IP"
+        width="140"
+        show-overflow-tooltip
+      >
+        <template #default="{ row }">
+          {{ getEventDataValue(row, 'IpAddress') }}
         </template>
       </el-table-column>
 
       <el-table-column
         label="用户名"
-        width="120"
+        width="140"
+        show-overflow-tooltip
       >
         <template #default="{ row }">
-          <div v-if="[4624, 4648, 4625, 4647].includes(row.event_id)">
-            {{ row.event_data?.TargetUserName || '-' }}
-          </div>
-        </template>
-      </el-table-column>
-
-      <el-table-column
-        label="域名"
-        width="120"
-      >
-        <template #default="{ row }">
-          <div v-if="[4624, 4648, 4625, 4647].includes(row.event_id)">
-            {{ row.event_data?.TargetDomainName || '-' }}
-          </div>
-        </template>
-      </el-table-column>
-
-      <el-table-column
-        label="来源IP"
-        width="120"
-      >
-        <template #default="{ row }">
-          <div v-if="[4624, 4648, 4625, 4647].includes(row.event_id)">
-            {{ row.event_data?.IpAddress || '-' }}
-          </div>
+          {{ getEventDataValue(row, 'TargetUserName') }}
         </template>
       </el-table-column>
 
       <el-table-column
         label="工作站"
         width="120"
+        show-overflow-tooltip
       >
         <template #default="{ row }">
-          <div v-if="[4624, 4648, 4625, 4647].includes(row.event_id)">
-            {{ row.event_data?.WorkstationName || '-' }}
-          </div>
+          {{ getEventDataValue(row, 'WorkstationName') }}
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="主体用户名"
+        width="120"
+        show-overflow-tooltip
+      >
+        <template #default="{ row }">
+          {{ getEventDataValue(row, 'SubjectUserName') }}
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="主体域"
+        width="140"
+        show-overflow-tooltip
+      >
+        <template #default="{ row }">
+          {{ getEventDataValue(row, 'SubjectDomainName') }}
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="进程"
+        width="120"
+        show-overflow-tooltip
+      >
+        <template #default="{ row }">
+          {{ getEventDataValue(row, 'LogonProcessName') }}
         </template>
       </el-table-column>
       
@@ -363,7 +586,15 @@ defineExpose({
     >
       <el-descriptions :column="2" border>
         <el-descriptions-item label="时间 Time">{{ selectedEvent?.time }}</el-descriptions-item>
+        <el-descriptions-item label="UTC 时间 UTC Time">{{ selectedEvent?.time_utc || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="本机换算 Local Time">{{ selectedEvent?.time_local || '-' }}</el-descriptions-item>
         <el-descriptions-item label="事件ID EventID">{{ selectedEvent?.event_id }}</el-descriptions-item>
+        <el-descriptions-item label="事件类型 EventType">
+          <el-tag :class="getEventTypeClass(selectedEvent)" disable-transitions>
+            {{ getEventTypeLabel(selectedEvent) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="登录类型 LogonType">{{ getLogonTypeDisplay(selectedEvent) }}</el-descriptions-item>
         <el-descriptions-item label="提供者 Provider">{{ selectedEvent?.provider }}</el-descriptions-item>
         <el-descriptions-item label="级别 Level">
           <el-tag :type="getLevelType(selectedEvent?.level)">{{ selectedEvent?.level }}</el-tag>
@@ -451,6 +682,43 @@ defineExpose({
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.column-filter-bar {
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.column-filter-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.column-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 10px;
+}
+
+.column-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.column-filter-item span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1;
 }
 
 /* 快速筛选按钮组样式 */
@@ -573,8 +841,8 @@ defineExpose({
 :deep(.custom-table .el-tag) {
   border-radius: 4px;
   padding: 0 6px;
-  height: 20px;
-  line-height: 18px;
+  min-height: 22px;
+  line-height: 20px;
   font-size: 12px;
 }
 
@@ -596,6 +864,35 @@ defineExpose({
 
 :deep(.custom-table .el-tag--info) {
   background-color: #6b7280;
+}
+
+:deep(.event-type-tag) {
+  max-width: 100%;
+  height: 22px;
+  padding: 0 8px;
+  border: 0 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.event-type-tag--success) {
+  background: #0f766e !important;
+}
+
+:deep(.event-type-tag--warning) {
+  background: #9a3412 !important;
+}
+
+:deep(.event-type-tag--danger) {
+  background: #b91c1c !important;
+}
+
+:deep(.event-type-tag--info) {
+  background: #334155 !important;
 }
 
 .pagination-container {

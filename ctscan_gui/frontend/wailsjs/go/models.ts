@@ -34,6 +34,8 @@ export namespace pkg {
 	}
 	export class EVTXEvent {
 	    time: string;
+	    time_utc: string;
+	    time_local: string;
 	    event_id: number;
 	    provider: string;
 	    level: string;
@@ -41,6 +43,7 @@ export namespace pkg {
 	    computer: string;
 	    user_id: string;
 	    description: string;
+	    event_type: string;
 	    data: Record<string, any>;
 	    event_record_id: number;
 	    version: number;
@@ -62,6 +65,8 @@ export namespace pkg {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.time = source["time"];
+	        this.time_utc = source["time_utc"];
+	        this.time_local = source["time_local"];
 	        this.event_id = source["event_id"];
 	        this.provider = source["provider"];
 	        this.level = source["level"];
@@ -69,6 +74,7 @@ export namespace pkg {
 	        this.computer = source["computer"];
 	        this.user_id = source["user_id"];
 	        this.description = source["description"];
+	        this.event_type = source["event_type"];
 	        this.data = source["data"];
 	        this.event_record_id = source["event_record_id"];
 	        this.version = source["version"];

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 // EVTXEvent 表示解析后的EVTX事件
 type EVTXEvent struct {
 	Time        string         `json:"time"`
+	TimeUTC     string         `json:"time_utc"`
+	TimeLocal   string         `json:"time_local"`
 	EventID     int            `json:"event_id"`
 	Provider    string         `json:"provider"`
 	Level       string         `json:"level"`
@@ -22,6 +25,7 @@ type EVTXEvent struct {
 	Computer    string         `json:"computer"`
 	UserID      string         `json:"user_id"`
 	Description string         `json:"description"`
+	EventType   string         `json:"event_type"`
 	Data        map[string]any `json:"data"`
 	// 新增字段
 	EventRecordID int    `json:"event_record_id"`
@@ -41,310 +45,140 @@ type EVTXEvent struct {
 	UserData map[string]any `json:"user_data"`
 }
 
+var (
+	providerPath      = evtx.Path("/Event/System/Provider/Name")
+	levelPath         = evtx.Path("/Event/System/Level")
+	channelPath       = evtx.Path("/Event/System/Channel")
+	computerPath      = evtx.Path("/Event/System/Computer")
+	userIDPath        = evtx.Path("/Event/System/Security/UserID")
+	eventDataPath     = evtx.Path("/Event/EventData")
+	systemPath        = evtx.Path("/Event/System")
+	userDataPath      = evtx.Path("/Event/UserData")
+	versionPath       = evtx.Path("/Event/System/Version")
+	qualifiersPath    = evtx.Path("/Event/System/Qualifiers")
+	taskPath          = evtx.Path("/Event/System/Task")
+	opcodePath        = evtx.Path("/Event/System/Opcode")
+	keywordsPath      = evtx.Path("/Event/System/Keywords")
+	processIDPath     = evtx.Path("/Event/System/Execution/ProcessID")
+	threadIDPath      = evtx.Path("/Event/System/Execution/ThreadID")
+	eventRecordIDPath = evtx.Path("/Event/System/EventRecordID")
+	timeCreatedPath   = evtx.Path("/Event/System/TimeCreated/SystemTime")
+)
+
 // ParseEVTXFile 解析EVTX文件
 func (a *App) ParseEVTXFile(filePath string) ([]EVTXEvent, error) {
 	log.Printf("开始解析EVTX文件: %s", filePath)
 
-	// 检查文件是否存在
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Printf("文件不存在: %s", filePath)
-		return nil, fmt.Errorf("文件不存在: %s", filePath)
+	if _, err := os.Stat(filePath); err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("文件不存在: %s", filePath)
+		}
+		return nil, fmt.Errorf("无法访问文件 %s: %w", filePath, err)
 	}
 
-	// 检查文件扩展名
-	if !strings.HasSuffix(strings.ToLower(filePath), ".evtx") {
+	if !strings.EqualFold(filepath.Ext(filePath), ".evtx") {
 		return nil, fmt.Errorf("文件格式错误：必须是 .evtx 文件")
 	}
 
-	// 打开EVTX文件
-	log.Printf("正在打开EVTX文件...")
 	ef, err := evtx.Open(filePath)
 	if err != nil {
-		log.Printf("打开文件失败: %v", err)
 		if strings.Contains(err.Error(), "Corrupted header") {
 			return nil, fmt.Errorf("文件格式错误：不是有效的 EVTX 文件或文件已损坏")
 		}
-		return nil, fmt.Errorf("打开文件失败: %v", err)
+		return nil, fmt.Errorf("打开文件失败: %w", err)
 	}
 	defer ef.Close()
-	log.Printf("成功打开EVTX文件")
 
-	events := make([]EVTXEvent, 0)
-
-	// 解析所有事件
-	log.Printf("开始解析事件...")
+	events := make([]EVTXEvent, 0, 4096)
 	for event := range ef.Events() {
-
-		// 获取事件ID
-		eventID := int(event.EventID())
-
-		// 创建路径
-		providerPath := evtx.Path("System/Provider/@Name")
-		levelPath := evtx.Path("System/Level")
-		computerPath := evtx.Path("System/Computer")
-		userIDPath := evtx.Path("System/Security/@UserID")
-		eventDataPath := evtx.Path("EventData")
-		systemPath := evtx.Path("System")
-		userDataPath := evtx.Path("UserData")
-		versionPath := evtx.Path("System/Version")
-		qualifiersPath := evtx.Path("System/Qualifiers")
-		taskPath := evtx.Path("System/Task")
-		opcodePath := evtx.Path("System/Opcode")
-		keywordsPath := evtx.Path("System/Keywords")
-		processIDPath := evtx.Path("System/Execution/@ProcessID")
-		threadIDPath := evtx.Path("System/Execution/@ThreadID")
-
-		// 获取提供者
-		provider := "未知"
-		if p, err := event.GetString(&providerPath); err == nil && p != "" {
-			provider = p
-		} else {
-			// 尝试从系统信息中获取提供者
-			if sys, err := event.GetMap(&systemPath); err == nil {
-				if providerMap, ok := (*sys)["Provider"]; ok {
-					if providerName, ok := providerMap.(map[string]interface{})["@Name"]; ok {
-						if name, ok := providerName.(string); ok {
-							provider = name
-						}
-					}
-				}
-			}
-		}
-
-		// 获取级别
-		level := "未知"
-		if l, err := event.GetInt(&levelPath); err == nil {
-			level = getEventLevel(int(l))
-		} else {
-			// 尝试从系统信息中获取级别
-			if sys, err := event.GetMap(&systemPath); err == nil {
-				if levelVal, ok := (*sys)["Level"]; ok {
-					if levelInt, ok := levelVal.(int); ok {
-						level = getEventLevel(levelInt)
-					}
-				}
-			}
-		}
-
-		// 获取通道
-		channel := event.Channel()
-
-		// 获取计算机名
-		computer := "未知"
-		if c, err := event.GetString(&computerPath); err == nil && c != "" {
-			computer = c
-		} else {
-			// 尝试从系统信息中获取计算机名
-			if sys, err := event.GetMap(&systemPath); err == nil {
-				if comp, ok := (*sys)["Computer"]; ok {
-					if compStr, ok := comp.(string); ok {
-						computer = compStr
-					}
-				}
-			}
-		}
-
-		// 获取用户ID
-		userID := "未知"
-		if u, err := event.GetString(&userIDPath); err == nil && u != "" {
-			userID = u
-		} else {
-			// 尝试从系统信息中获取用户ID
-			if sys, err := event.GetMap(&systemPath); err == nil {
-				if security, ok := (*sys)["Security"]; ok {
-					if securityMap, ok := security.(map[string]interface{}); ok {
-						if uid, ok := securityMap["@UserID"]; ok {
-							if uidStr, ok := uid.(string); ok {
-								userID = uidStr
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// 获取事件数据
-		eventData := make(map[string]any)
-		if data, err := event.GetMap(&eventDataPath); err == nil {
-			for key, value := range *data {
-				eventData[key] = value
-			}
-		}
-
-		// 对于登入事件，添加 LogonType、用户名和来源IP
-		if eventID == 4624 || eventID == 4648 || eventID == 4625 || eventID == 4647 {
-			log.Printf("处理登入事件 ID: %d", eventID)
-
-			// 获取事件数据
-			eventDataPath := evtx.Path("EventData")
-			if data, err := event.GetMap(&eventDataPath); err == nil {
-				log.Printf("事件数据内容: %+v", *data)
-
-				// 遍历事件数据中的所有字段
-				for key, value := range *data {
-					switch key {
-					case "LogonType":
-						if logonType, ok := value.(string); ok {
-							eventData["LogonType"] = logonType
-							log.Printf("获取到 LogonType: %s", logonType)
-						}
-					case "TargetUserName":
-						if userName, ok := value.(string); ok {
-							eventData["TargetUserName"] = userName
-							log.Printf("获取到用户名: %s", userName)
-						}
-					case "IpAddress":
-						if ip, ok := value.(string); ok {
-							eventData["IpAddress"] = ip
-							log.Printf("获取到来源IP: %s", ip)
-						}
-					case "TargetDomainName":
-						if domain, ok := value.(string); ok {
-							eventData["TargetDomainName"] = domain
-							log.Printf("获取到域名: %s", domain)
-						}
-					case "WorkstationName":
-						if workstation, ok := value.(string); ok {
-							eventData["WorkstationName"] = workstation
-							log.Printf("获取到工作站名: %s", workstation)
-						}
-					}
-				}
-			} else {
-				log.Printf("获取事件数据失败: %v", err)
-			}
-
-			// 如果上述方法失败，尝试直接从XML路径获取
-			if eventData["LogonType"] == nil {
-				logonTypePath := evtx.Path("EventData/Data[@Name='LogonType']")
-				if logonType, err := event.GetString(&logonTypePath); err == nil {
-					eventData["LogonType"] = logonType
-					log.Printf("通过路径获取到 LogonType: %s", logonType)
-				}
-			}
-
-			if eventData["TargetUserName"] == nil {
-				targetUserNamePath := evtx.Path("EventData/Data[@Name='TargetUserName']")
-				if targetUserName, err := event.GetString(&targetUserNamePath); err == nil {
-					eventData["TargetUserName"] = targetUserName
-					log.Printf("通过路径获取到用户名: %s", targetUserName)
-				}
-			}
-
-			if eventData["IpAddress"] == nil {
-				ipAddressPath := evtx.Path("EventData/Data[@Name='IpAddress']")
-				if ipAddress, err := event.GetString(&ipAddressPath); err == nil {
-					eventData["IpAddress"] = ipAddress
-					log.Printf("通过路径获取到来源IP: %s", ipAddress)
-				}
-			}
-
-			if eventData["TargetDomainName"] == nil {
-				targetDomainNamePath := evtx.Path("EventData/Data[@Name='TargetDomainName']")
-				if targetDomainName, err := event.GetString(&targetDomainNamePath); err == nil {
-					eventData["TargetDomainName"] = targetDomainName
-					log.Printf("通过路径获取到域名: %s", targetDomainName)
-				}
-			}
-
-			if eventData["WorkstationName"] == nil {
-				workstationNamePath := evtx.Path("EventData/Data[@Name='WorkstationName']")
-				if workstationName, err := event.GetString(&workstationNamePath); err == nil {
-					eventData["WorkstationName"] = workstationName
-					log.Printf("通过路径获取到工作站名: %s", workstationName)
-				}
-			}
-		}
-
-		// 获取系统信息
-		systemInfo := make(map[string]any)
-		if sys, err := event.GetMap(&systemPath); err == nil {
-			for key, value := range *sys {
-				systemInfo[key] = value
-			}
-		}
-
-		// 获取用户数据
-		userData := make(map[string]any)
-		if data, err := event.GetMap(&userDataPath); err == nil {
-			for key, value := range *data {
-				userData[key] = value
-			}
-		}
-
-		// 获取消息
-		message := ""
-		messagePath := evtx.Path("System/EventData/Data[@Name='Message']")
-		if msg, err := event.GetString(&messagePath); err == nil && msg != "" {
-			message = msg
-		}
-
-		// 获取其他字段
-		version := 0
-		if v, err := event.GetInt(&versionPath); err == nil {
-			version = int(v)
-		}
-
-		qualifiers := 0
-		if q, err := event.GetInt(&qualifiersPath); err == nil {
-			qualifiers = int(q)
-		}
-
-		task := 0
-		if t, err := event.GetInt(&taskPath); err == nil {
-			task = int(t)
-		}
-
-		opcode := 0
-		if o, err := event.GetInt(&opcodePath); err == nil {
-			opcode = int(o)
-		}
-
-		keywords := ""
-		if k, err := event.GetString(&keywordsPath); err == nil && k != "" {
-			keywords = k
-		}
-
-		processID := 0
-		if p, err := event.GetInt(&processIDPath); err == nil {
-			processID = int(p)
-		}
-
-		threadID := 0
-		if t, err := event.GetInt(&threadIDPath); err == nil {
-			threadID = int(t)
-		}
-
-		// 转换事件数据
-		evt := EVTXEvent{
-			Time:          event.TimeCreated().Format("2006-01-02 15:04:05"),
-			EventID:       eventID,
-			Provider:      provider,
-			Level:         level,
-			Channel:       channel,
-			Computer:      computer,
-			UserID:        userID,
-			Description:   getEventDescription(event),
-			Data:          make(map[string]any),
-			EventRecordID: int(event.EventRecordID()),
-			Version:       version,
-			Qualifiers:    qualifiers,
-			Task:          task,
-			Opcode:        opcode,
-			Keywords:      keywords,
-			ProcessID:     processID,
-			ThreadID:      threadID,
-			Message:       message,
-			SystemInfo:    systemInfo,
-			EventData:     eventData,
-			UserData:      userData,
-		}
-
-		events = append(events, evt)
+		events = append(events, parseEVTXEvent(event))
 	}
 
 	log.Printf("解析完成，共解析 %d 个事件", len(events))
 	return events, nil
+}
+
+func parseEVTXEvent(event *evtx.GoEvtxMap) EVTXEvent {
+	eventID := int(event.EventID())
+	eventData := getMapValue(event, eventDataPath)
+	provider := getStringValue(event, providerPath, "未知")
+	level, err := event.GetInt(&levelPath)
+	if err != nil {
+		level = -1
+	}
+
+	timeCreated := ""
+	timeCreatedUTC := ""
+	timeCreatedLocal := ""
+	if timestamp, err := event.GetTime(&timeCreatedPath); err == nil {
+		timeCreated = timestamp.Local().Format("2006-01-02 15:04:05")
+		timeCreatedUTC = timestamp.UTC().Format("2006-01-02 15:04:05")
+		timeCreatedLocal = timestamp.Local().Format("2006-01-02 15:04:05")
+	}
+
+	message, _ := eventData["Message"].(string)
+	return EVTXEvent{
+		Time:          timeCreated,
+		TimeUTC:       timeCreatedUTC,
+		TimeLocal:     timeCreatedLocal,
+		EventID:       eventID,
+		Provider:      provider,
+		Level:         getEventLevel(int(level)),
+		Channel:       getStringValue(event, channelPath, "未知"),
+		Computer:      getStringValue(event, computerPath, "未知"),
+		UserID:        getStringValue(event, userIDPath, "未知"),
+		Description:   getEventDescription(eventID, provider, eventData),
+		EventType:     getEventType(eventID, eventData),
+		Data:          make(map[string]any),
+		EventRecordID: getIntValue(event, eventRecordIDPath),
+		Version:       getIntValue(event, versionPath),
+		Qualifiers:    getIntValue(event, qualifiersPath),
+		Task:          getIntValue(event, taskPath),
+		Opcode:        getIntValue(event, opcodePath),
+		Keywords:      getStringValue(event, keywordsPath, ""),
+		ProcessID:     getIntValue(event, processIDPath),
+		ThreadID:      getIntValue(event, threadIDPath),
+		Message:       message,
+		SystemInfo:    getMapValue(event, systemPath),
+		EventData:     eventData,
+		UserData:      getMapValue(event, userDataPath),
+	}
+}
+
+func getStringValue(event *evtx.GoEvtxMap, path evtx.GoEvtxPath, fallback string) string {
+	value, err := event.GetString(&path)
+	if err != nil || value == "" {
+		return fallback
+	}
+	return value
+}
+
+func getIntValue(event *evtx.GoEvtxMap, path evtx.GoEvtxPath) int {
+	value, err := event.GetInt(&path)
+	if err != nil {
+		return 0
+	}
+	return int(value)
+}
+
+func getMapValue(event *evtx.GoEvtxMap, path evtx.GoEvtxPath) map[string]any {
+	result := make(map[string]any)
+	value, err := event.Get(&path)
+	if err != nil {
+		return result
+	}
+
+	switch data := (*value).(type) {
+	case evtx.GoEvtxMap:
+		for key, item := range data {
+			result[key] = item
+		}
+	case map[string]any:
+		for key, item := range data {
+			result[key] = item
+		}
+	}
+	return result
 }
 
 // SaveEVTXFile 保存上传的EVTX文件
@@ -381,115 +215,164 @@ func (a *App) SaveEVTXFile(filePath string) (string, error) {
 
 // getEventLevel 获取事件级别
 func getEventLevel(level int) string {
-	levelStr := "未知"
 	switch level {
+	case 0, 4:
+		return "信息"
 	case 1:
-		levelStr = "严重"
+		return "严重"
 	case 2:
-		levelStr = "错误"
+		return "错误"
 	case 3:
-		levelStr = "警告"
-	case 4:
-		levelStr = "信息"
+		return "警告"
 	case 5:
-		levelStr = "详细"
+		return "详细"
+	default:
+		return "未知"
 	}
-	log.Printf("事件级别转换: %d -> %s", level, levelStr)
-	return levelStr
 }
 
 // getEventDescription 获取事件描述
-func getEventDescription(event *evtx.GoEvtxMap) string {
-	// 获取基本信息
-	providerPath := evtx.Path("System/Provider/@Name")
-	provider := "未知"
-	if p, err := event.GetString(&providerPath); err == nil && p != "" {
-		provider = p
-	}
-
-	// 获取事件ID
-	eventID := event.EventID()
-
-	// 获取事件数据
-	eventDataPath := evtx.Path("EventData")
+func getEventDescription(eventID int, provider string, eventData map[string]any) string {
 	description := fmt.Sprintf("事件ID: %d, 提供者: %s", eventID, provider)
-
-	// 添加登入类型标注
-	switch eventID {
-	case 4624, 4648: // 登入成功
-		// 检查是否是RDP登入
-		logonTypePath := evtx.Path("EventData/Data[@Name='LogonType']")
-		if logonType, err := event.GetInt(&logonTypePath); err == nil {
-			switch logonType {
-			case 2: // 交互式登入
-				description += "\n登入类型: 本地交互式登入"
-			case 3: // 网络登入
-				description += "\n登入类型: 网络登入"
-			case 4: // 批处理登入
-				description += "\n登入类型: 批处理登入"
-			case 5: // 服务登入
-				description += "\n登入类型: 服务登入"
-			case 7: // 解锁
-				description += "\n登入类型: 工作站解锁"
-			case 8: // 网络明文
-				description += "\n登入类型: 网络明文登入"
-			case 9: // 新凭证
-				description += "\n登入类型: 新凭证登入"
-			case 10: // 远程交互
-				description += "\n登入类型: 远程交互式登入 (RDP)"
-			case 11: // 缓存交互
-				description += "\n登入类型: 缓存交互式登入"
-			default:
-				description += fmt.Sprintf("\n登入类型: 未知 (%d)", logonType)
-			}
-		}
-	case 4625, 4647: // 登入失败
-		// 检查是否是RDP登入
-		logonTypePath := evtx.Path("EventData/Data[@Name='LogonType']")
-		if logonType, err := event.GetInt(&logonTypePath); err == nil {
-			switch logonType {
-			case 2: // 交互式登入
-				description += "\n登入类型: 本地交互式登入"
-			case 3: // 网络登入
-				description += "\n登入类型: 网络登入"
-			case 4: // 批处理登入
-				description += "\n登入类型: 批处理登入"
-			case 5: // 服务登入
-				description += "\n登入类型: 服务登入"
-			case 7: // 解锁
-				description += "\n登入类型: 工作站解锁"
-			case 8: // 网络明文
-				description += "\n登入类型: 网络明文登入"
-			case 9: // 新凭证
-				description += "\n登入类型: 新凭证登入"
-			case 10: // 远程交互
-				description += "\n登入类型: 远程交互式登入 (RDP)"
-			case 11: // 缓存交互
-				description += "\n登入类型: 缓存交互式登入"
-			default:
-				description += fmt.Sprintf("\n登入类型: 未知 (%d)", logonType)
-			}
+	if eventID == 4624 || eventID == 4625 || eventID == 4648 {
+		if logonType, ok := eventData["LogonType"]; ok {
+			description += "\n登录类型: " + getLogonTypeDescription(fmt.Sprint(logonType))
 		}
 	}
 
-	// 尝试获取更多详细信息
-	if eventData, err := event.GetMap(&eventDataPath); err == nil {
-		// 遍历事件数据，添加到描述中
-		for key, value := range *eventData {
-			// 跳过一些不重要的字段
-			if key == "SubjectUserSid" || key == "SubjectUserName" || key == "SubjectDomainName" {
-				continue
-			}
-			description += fmt.Sprintf("\n%s: %v", key, value)
+	keys := make([]string, 0, len(eventData))
+	for key := range eventData {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		if key == "SubjectUserSid" || key == "SubjectUserName" || key == "SubjectDomainName" || key == "Message" {
+			continue
 		}
+		description += fmt.Sprintf("\n%s: %v", key, eventData[key])
 	}
 
-	// 尝试获取消息
-	messagePath := evtx.Path("System/EventData/Data[@Name='Message']")
-	if message, err := event.GetString(&messagePath); err == nil && message != "" {
+	if message, ok := eventData["Message"].(string); ok && message != "" {
 		description += fmt.Sprintf("\n消息: %s", message)
 	}
-
-	log.Printf("事件描述: %s", description)
 	return description
+}
+
+func getEventType(eventID int, eventData map[string]any) string {
+	switch eventID {
+	case 4624:
+		return getSuccessfulLogonEventType(fmt.Sprint(eventData["LogonType"]))
+	case 4625:
+		return getFailedLogonEventType(fmt.Sprint(eventData["LogonType"]))
+	case 4627:
+		return "登录组成员信息"
+	case 4634:
+		return "账户注销"
+	case 4647:
+		return "用户主动注销"
+	case 4648:
+		return "显式凭据登录"
+	case 4672:
+		return "特权登录"
+	case 4688:
+		return "进程创建"
+	case 4697:
+		return "服务安装"
+	case 4698:
+		return "计划任务创建"
+	case 4699:
+		return "计划任务删除"
+	case 4702:
+		return "计划任务更新"
+	case 4719:
+		return "审计策略变更"
+	case 4720:
+		return "用户创建"
+	case 4722:
+		return "用户启用"
+	case 4723:
+		return "用户尝试修改密码"
+	case 4724:
+		return "用户密码重置"
+	case 4725:
+		return "用户禁用"
+	case 4726:
+		return "用户删除"
+	case 4732:
+		return "本地组成员添加"
+	case 4733:
+		return "本地组成员移除"
+	case 4768:
+		return "Kerberos TGT 请求"
+	case 4769:
+		return "Kerberos 服务票据请求"
+	case 4771:
+		return "Kerberos 预认证失败"
+	case 4776:
+		return "NTLM 凭据验证"
+	case 4778:
+		return "RDP 会话重新连接"
+	case 4779:
+		return "RDP 会话断开"
+	case 4798:
+		return "查询用户本地组成员"
+	case 4799:
+		return "查询启用安全组成员"
+	case 5061:
+		return "加密操作"
+	case 1102:
+		return "安全日志清除"
+	default:
+		return "普通安全事件"
+	}
+}
+
+func getSuccessfulLogonEventType(logonType string) string {
+	switch logonType {
+	case "2":
+		return "本地登录成功"
+	case "3":
+		return "网络登录成功"
+	case "4":
+		return "批处理登录成功"
+	case "5":
+		return "服务登录成功"
+	case "7":
+		return "工作站解锁成功"
+	case "8":
+		return "明文网络登录成功"
+	case "9":
+		return "新凭据登录成功"
+	case "10":
+		return "RDP 登录成功"
+	case "11":
+		return "缓存登录成功"
+	default:
+		return "登录成功"
+	}
+}
+
+func getFailedLogonEventType(logonType string) string {
+	if logonType == "" || logonType == "<nil>" {
+		return "登录失败"
+	}
+	return "登录失败：" + getLogonTypeDescription(logonType)
+}
+
+func getLogonTypeDescription(logonType string) string {
+	descriptions := map[string]string{
+		"2":  "本地交互式登录",
+		"3":  "网络登录",
+		"4":  "批处理登录",
+		"5":  "服务登录",
+		"7":  "工作站解锁",
+		"8":  "网络明文登录",
+		"9":  "新凭据登录",
+		"10": "远程交互式登录 (RDP)",
+		"11": "缓存交互式登录",
+	}
+	if description, ok := descriptions[logonType]; ok {
+		return description
+	}
+	return fmt.Sprintf("未知 (%s)", logonType)
 }
