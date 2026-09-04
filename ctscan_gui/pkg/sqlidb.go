@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3" // 导入 SQLite 驱动程序
@@ -39,12 +40,10 @@ func getDesktopPath() (string, error) {
 }
 
 func InitSqliteDB() (*sql.DB, error) {
-	desktopPath, err := getDesktopPath()
+	dbPath, err := getDatabasePath()
 	if err != nil {
 		return nil, err
 	}
-
-	dbPath := filepath.Join(desktopPath, "ctscan.db")
 
 	// 检查数据库文件是否存在
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
@@ -73,6 +72,58 @@ func InitSqliteDB() (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func getDatabasePath() (string, error) {
+	if customPath := strings.TrimSpace(os.Getenv("CTSCAN_DB_PATH")); customPath != "" {
+		if err := os.MkdirAll(filepath.Dir(customPath), 0755); err != nil {
+			return "", fmt.Errorf("创建自定义数据库目录失败: %v", err)
+		}
+		return customPath, nil
+	}
+
+	if desktopPath, err := getDesktopPath(); err == nil && isWritableDir(desktopPath) {
+		return filepath.Join(desktopPath, "ctscan.db"), nil
+	}
+
+	if configDir, err := os.UserConfigDir(); err == nil {
+		dbDir := filepath.Join(configDir, "CTScan")
+		if err := os.MkdirAll(dbDir, 0755); err == nil && isWritableDir(dbDir) {
+			return filepath.Join(dbDir, "ctscan.db"), nil
+		}
+	}
+
+	if cacheDir, err := os.UserCacheDir(); err == nil {
+		dbDir := filepath.Join(cacheDir, "CTScan")
+		if err := os.MkdirAll(dbDir, 0755); err == nil && isWritableDir(dbDir) {
+			return filepath.Join(dbDir, "ctscan.db"), nil
+		}
+	}
+
+	dbDir := filepath.Join(os.TempDir(), "CTScan")
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		return "", fmt.Errorf("创建临时数据库目录失败: %v", err)
+	}
+	return filepath.Join(dbDir, "ctscan.db"), nil
+}
+
+func isWritableDir(dir string) bool {
+	info, err := os.Stat(dir)
+	if err != nil || !info.IsDir() {
+		return false
+	}
+
+	file, err := os.CreateTemp(dir, "ctscan-write-test-*")
+	if err != nil {
+		return false
+	}
+	name := file.Name()
+	if err := file.Close(); err != nil {
+		_ = os.Remove(name)
+		return false
+	}
+	_ = os.Remove(name)
+	return true
 }
 
 func createTables(db *sql.DB) error {

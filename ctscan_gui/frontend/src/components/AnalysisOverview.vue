@@ -12,6 +12,7 @@ import ShellHistoryPanel from './ShellHistoryPanel.vue'
 import FileMonitorPanel from './FileMonitorPanel.vue'
 import RdploginPanel from './RdploginPanel.vue'
 import EvtxPanel from './EvtxPanel.vue'
+import SysinternalsPanel from './SysinternalsPanel.vue'
 import {
   Monitor,
   User,
@@ -24,7 +25,8 @@ import {
   Monitor as RdpIcon,
   Cpu,
   UploadFilled,
-  Document
+  Document,
+  Tools
 } from '@element-plus/icons-vue'
 import { ElMessage, ElLoading } from 'element-plus'
 import { ParseEVTXFile, SelectAndParseEVTXFile } from '../../wailsjs/go/pkg/App'
@@ -42,6 +44,7 @@ const shellHistoryRef = ref();
 const fileMonitorRef = ref<InstanceType<typeof FileMonitorPanel> | null>(null);
 const rdploginRef = ref<InstanceType<typeof RdploginPanel> | null>(null);
 const evtxRef = ref<InstanceType<typeof EvtxPanel> | null>(null);
+const sysinternalsRef = ref<InstanceType<typeof SysinternalsPanel> | null>(null);
 
 // 当前激活的面板
 const activePanel = ref('system');
@@ -54,6 +57,7 @@ const panels = [
   { id: 'startup', name: '开机启动项', icon: Timer, component: StartupPanel },
   { id: 'cron', name: '任务计划', icon: Calendar, component: CronTaskPanel },
   { id: 'process', name: '进程排查', icon: Operation, component: ProcessPanel },
+  { id: 'sysinternals', name: '微软工具', icon: Tools, component: SysinternalsPanel },
   { id: 'login-success', name: '登入成功', icon: Key, component: LoginSuccessPanel },
   { id: 'login-failed', name: '登入失败', icon: Warning, component: LoginFailedPanel },
   { id: 'shell-history', name: '命令记录', icon: Operation, component: ShellHistoryPanel },
@@ -84,7 +88,8 @@ const refreshInfo = async () => {
       shellHistoryRef.value?.refresh(),
       rdploginRef.value?.refresh(),
       fileMonitorRef.value?.refresh(),
-      evtxRef.value?.refresh()
+      evtxRef.value?.refresh(),
+      sysinternalsRef.value?.refresh()
     ])
     
     ElMessage({
@@ -129,6 +134,9 @@ const handlePanelChange = (panel: string) => {
       break
     case 'file-monitor':
       fileMonitorRef.value?.refresh()
+      break
+    case 'sysinternals':
+      sysinternalsRef.value?.refresh()
       break
     case 'evtx':
       evtxRef.value?.refresh()
@@ -251,6 +259,7 @@ onMounted(() => {
         <StartupPanel v-if="activePanel === 'startup'" ref="startupRef" />
         <CronTaskPanel v-if="activePanel === 'cron'" ref="cronTaskRef" />
         <ProcessPanel v-if="activePanel === 'process'" ref="processRef" />
+        <SysinternalsPanel v-if="activePanel === 'sysinternals'" ref="sysinternalsRef" />
         <LoginSuccessPanel v-if="activePanel === 'login-success'" ref="loginSuccessRef" />
         <LoginFailedPanel v-if="activePanel === 'login-failed'" ref="loginFailedRef" />
         <ShellHistoryPanel v-if="activePanel === 'shell-history'" ref="shellHistoryRef" />

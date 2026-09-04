@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -74,5 +76,54 @@ func TestParseEVTXEvent(t *testing.T) {
 	}
 	if !strings.Contains(parsed.Description, "远程交互式登录 (RDP)") {
 		t.Fatalf("description does not identify RDP logon: %s", parsed.Description)
+	}
+}
+
+func TestParseProvidedSecurityEVTXWhenEnabled(t *testing.T) {
+	filePath := strings.TrimSpace(os.Getenv("CTSCAN_TEST_SECURITY_EVTX"))
+	if filePath == "" {
+		t.Skip("set CTSCAN_TEST_SECURITY_EVTX to run the provided Security.evtx regression test")
+	}
+
+	previousLocal := time.Local
+	time.Local = time.FixedZone("UTC+8", 8*60*60)
+	defer func() {
+		time.Local = previousLocal
+	}()
+
+	events, err := (&App{}).ParseEVTXFile(filePath)
+	if err != nil {
+		t.Fatalf("parse provided Security.evtx failed: %v", err)
+	}
+	if len(events) != 31051 {
+		t.Fatalf("unexpected event count: got %d want 31051", len(events))
+	}
+
+	rdpLogonCount := 0
+	var matchedRDP *EVTXEvent
+	for i := range events {
+		event := &events[i]
+		if event.EventID != 4624 || fmt.Sprint(event.EventData["LogonType"]) != "10" {
+			continue
+		}
+		rdpLogonCount++
+		if event.Time == "2026-09-03 09:03:55" &&
+			fmt.Sprint(event.EventData["TargetUserName"]) == "jiyu" &&
+			fmt.Sprint(event.EventData["IpAddress"]) == "192.168.17.57" {
+			matchedRDP = event
+		}
+	}
+
+	if rdpLogonCount != 32 {
+		t.Fatalf("unexpected RDP logon count: got %d want 32", rdpLogonCount)
+	}
+	if matchedRDP == nil {
+		t.Fatalf("expected RDP sample was not found")
+	}
+	if matchedRDP.EventType != "RDP 登录成功" {
+		t.Fatalf("unexpected RDP event type: %q", matchedRDP.EventType)
+	}
+	if strings.TrimSpace(fmt.Sprint(matchedRDP.EventData["LogonProcessName"])) != "User32" {
+		t.Fatalf("unexpected RDP logon process name: %v", matchedRDP.EventData["LogonProcessName"])
 	}
 }

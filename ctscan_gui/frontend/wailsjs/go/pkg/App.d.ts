@@ -24,9 +24,17 @@ export function GetShellHistory():Promise<Array<pkg.ShellHistory>>;
 
 export function GetStartupItems():Promise<Array<pkg.StartupItem>>;
 
+export function GetSysinternalsTools():Promise<Array<pkg.SysinternalsTool>>;
+
 export function GetSystemInfo():Promise<pkg.SystemInfo>;
 
 export function GetUserInfo():Promise<pkg.UserInfo>;
+
+export function InstallSysinternalsTool(arg1:string):Promise<pkg.SysinternalsTool>;
+
+export function LaunchSysinternalsTool(arg1:string):Promise<void>;
+
+export function OpenSysinternalsToolsFolder():Promise<void>;
 
 export function ParseEVTXFile(arg1:string):Promise<Array<pkg.EVTXEvent>>;
 

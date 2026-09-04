@@ -391,6 +391,38 @@ export namespace pkg {
 		    return a;
 		}
 	}
+	export class SysinternalsTool {
+	    id: string;
+	    name: string;
+	    file_name: string;
+	    description: string;
+	    best_for: string;
+	    local_path: string;
+	    available: boolean;
+	    packaged: boolean;
+	    supported: boolean;
+	    requires_admin: boolean;
+	    vendor: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SysinternalsTool(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.file_name = source["file_name"];
+	        this.description = source["description"];
+	        this.best_for = source["best_for"];
+	        this.local_path = source["local_path"];
+	        this.available = source["available"];
+	        this.packaged = source["packaged"];
+	        this.supported = source["supported"];
+	        this.requires_admin = source["requires_admin"];
+	        this.vendor = source["vendor"];
+	    }
+	}
 	export class SystemInfo {
 	    hostname: string;
 	    os: string;

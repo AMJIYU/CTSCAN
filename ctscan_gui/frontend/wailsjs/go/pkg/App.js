@@ -46,12 +46,28 @@ export function GetStartupItems() {
   return window['go']['pkg']['App']['GetStartupItems']();
 }
 
+export function GetSysinternalsTools() {
+  return window['go']['pkg']['App']['GetSysinternalsTools']();
+}
+
 export function GetSystemInfo() {
   return window['go']['pkg']['App']['GetSystemInfo']();
 }
 
 export function GetUserInfo() {
   return window['go']['pkg']['App']['GetUserInfo']();
+}
+
+export function InstallSysinternalsTool(arg1) {
+  return window['go']['pkg']['App']['InstallSysinternalsTool'](arg1);
+}
+
+export function LaunchSysinternalsTool(arg1) {
+  return window['go']['pkg']['App']['LaunchSysinternalsTool'](arg1);
+}
+
+export function OpenSysinternalsToolsFolder() {
+  return window['go']['pkg']['App']['OpenSysinternalsToolsFolder']();
 }
 
 export function ParseEVTXFile(arg1) {
