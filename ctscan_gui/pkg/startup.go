@@ -18,6 +18,10 @@ type StartupItem struct {
 	LastModTime time.Time `json:"lastModTime"` // 最后修改时间
 	Size        int64     `json:"size"`        // 文件大小
 	Description string    `json:"description"` // 描述信息
+	Category    string    `json:"category"`    // Autoruns 风格分类
+	Location    string    `json:"location"`    // 注册表键、任务路径、启动文件夹等位置
+	ImagePath   string    `json:"image_path"`  // 实际启动的镜像/命令路径
+	Publisher   string    `json:"publisher"`   // 发布者，无法快速确认时为空
 }
 
 // GetStartupItems 获取系统启动项列表
@@ -99,48 +103,6 @@ func (a *App) getMacStartupItems() []StartupItem {
 			}
 		}
 	}
-	return items
-}
-
-func (a *App) getWindowsStartupItems() []StartupItem {
-	var items []StartupItem
-
-	if runtime.GOOS == "windows" {
-		startupFolders := []struct {
-			path string
-			typ  string
-		}{
-			{filepath.Join(os.Getenv("APPDATA"), "Microsoft\\Windows\\Start Menu\\Programs\\Startup"), "UserStartup"},
-			{filepath.Join(os.Getenv("ProgramData"), "Microsoft\\Windows\\Start Menu\\Programs\\Startup"), "SystemStartup"},
-		}
-
-		for _, folder := range startupFolders {
-			files, err := ioutil.ReadDir(folder.path)
-			if err != nil {
-				continue
-			}
-			for _, f := range files {
-				if !f.IsDir() {
-					filePath := filepath.Join(folder.path, f.Name())
-					info, err := os.Stat(filePath)
-					if err != nil {
-						continue
-					}
-
-					items = append(items, StartupItem{
-						Name:        f.Name(),
-						Path:        filePath,
-						Type:        folder.typ,
-						Enabled:     true,
-						LastModTime: info.ModTime(),
-						Size:        info.Size(),
-						Description: "", // Windows启动项可能需要额外解析快捷方式
-					})
-				}
-			}
-		}
-	}
-
 	return items
 }
 

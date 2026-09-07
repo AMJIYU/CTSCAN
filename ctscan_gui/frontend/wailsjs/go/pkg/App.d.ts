@@ -38,6 +38,8 @@ export function OpenSysinternalsToolsFolder():Promise<void>;
 
 export function ParseEVTXFile(arg1:string):Promise<Array<pkg.EVTXEvent>>;
 
+export function ParseEVTXFileWithInfo(arg1:string):Promise<pkg.EVTXParseResult>;
+
 export function SaveCronTasks(arg1:Array<pkg.CronTask>):Promise<void>;
 
 export function SaveEVTXFile(arg1:string):Promise<string>;
@@ -67,3 +69,5 @@ export function SaveSystemInfo(arg1:pkg.SystemInfo):Promise<void>;
 export function SaveUserInfo(arg1:pkg.UserInfo):Promise<void>;
 
 export function SelectAndParseEVTXFile():Promise<Array<pkg.EVTXEvent>>;
+
+export function SelectAndParseEVTXFileWithInfo():Promise<pkg.EVTXParseResult>;

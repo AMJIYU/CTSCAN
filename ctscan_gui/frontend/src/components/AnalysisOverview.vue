@@ -30,7 +30,7 @@ import {
   Download
 } from '@element-plus/icons-vue'
 import { ElMessage, ElLoading } from 'element-plus'
-import { SaveManualLogFile, SelectAndParseEVTXFile } from '../../wailsjs/go/pkg/App'
+import { SaveManualLogFile, SelectAndParseEVTXFileWithInfo } from '../../wailsjs/go/pkg/App'
 import { buildPortableLogHtml, createDefaultLogFileName } from '../utils/logExport'
 import type { LogSnapshot } from '../utils/logExport'
 
@@ -253,10 +253,10 @@ const handleFileSelect = async () => {
   try {
     // 调用后端弹窗并解析
     console.log('开始调用 SelectAndParseEVTXFile')
-    const result = await SelectAndParseEVTXFile()
+    const result = await SelectAndParseEVTXFileWithInfo()
     console.log('解析结果:', result)
     
-    if (!result || result.length === 0) {
+    if (!result?.events || result.events.length === 0) {
       throw new Error('未解析到任何事件')
     }
     
@@ -270,8 +270,8 @@ const handleFileSelect = async () => {
     // 传递数据给 EvtxPanel
     console.log('准备传递数据给 EvtxPanel')
     if (evtxRef.value) {
-      console.log('EvtxPanel 引用存在，调用 setEvents')
-      await evtxRef.value.setEvents(result)
+      console.log('EvtxPanel 引用存在，调用 setParseResult')
+      await evtxRef.value.setParseResult(result)
     } else {
       console.error('EvtxPanel 引用不存在')
     }

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Key, Warning, Connection, RefreshLeft } from '@element-plus/icons-vue'
-import { ParseEVTXFile } from '../../wailsjs/go/pkg/App'
+import { Search, Key, Warning, Connection, RefreshLeft, Download } from '@element-plus/icons-vue'
+import { ParseEVTXFile, SaveManualLogFile } from '../../wailsjs/go/pkg/App'
 import { pkg } from '../../wailsjs/go/models'
+import { buildPortableLogHtml, createDefaultLogFileName } from '../utils/logExport'
 import type { LogSnapshot } from '../utils/logExport'
 
 // 定义组件事件
@@ -17,6 +18,10 @@ const pageSize = ref(20)
 const dialogVisible = ref(false)
 const selectedEvent = ref<pkg.EVTXEvent | null>(null)
 const quickFilter = ref('')
+const sourceFilePath = ref('')
+const sourceFileName = ref('')
+const parsedAt = ref('')
+const savingEvtxLog = ref(false)
 
 const loginEventIds = [4624, 4625, 4648]
 const humanLogonTypes = new Set(['2', '3', '7', '8', '9', '10', '11'])
@@ -53,6 +58,7 @@ const columnFilters = reactive<Record<ColumnFilterKey, string>>({
 // 分页相关
 const total = computed(() => filteredEvents.value.length)
 const hasColumnFilters = computed(() => Object.values(columnFilters).some(value => value.trim() !== ''))
+const selectedSourceName = computed(() => sourceFileName.value || '用户上传 EVTX')
 
 // 过滤后的事件列表
 const filteredEvents = computed(() => {
@@ -110,7 +116,11 @@ const parseEvtxFile = async (filePath: string) => {
   loading.value = true
   try {
     const result = await ParseEVTXFile(filePath)
-    events.value = result
+    setEventRecords(result, {
+      file_path: filePath,
+      file_name: getFileNameFromPath(filePath),
+      parsed_at: getCurrentDisplayTime()
+    })
     
     ElMessage({
       type: 'success',
@@ -129,6 +139,25 @@ const parseEvtxFile = async (filePath: string) => {
   }
 }
 
+const setEventRecords = (records: pkg.EVTXEvent[], source?: EVTXSourceInfo) => {
+  events.value = Array.isArray(records) ? records : []
+  sourceFilePath.value = source?.file_path || sourceFilePath.value || ''
+  sourceFileName.value = source?.file_name || getFileNameFromPath(sourceFilePath.value) || sourceFileName.value || ''
+  parsedAt.value = source?.parsed_at || parsedAt.value || getCurrentDisplayTime()
+  currentPage.value = 1
+}
+
+type EVTXSourceInfo = {
+  file_path?: string
+  file_name?: string
+  parsed_at?: string
+}
+
+type EVTXParseResultLike = EVTXSourceInfo & {
+  total?: number
+  events?: pkg.EVTXEvent[]
+}
+
 // 导出事件数据为JSON
 const exportEvents = () => {
   const dataStr = JSON.stringify(filteredEvents.value, null, 2)
@@ -140,6 +169,47 @@ const exportEvents = () => {
   linkElement.setAttribute('href', dataUri)
   linkElement.setAttribute('download', exportFileDefaultName)
   linkElement.click()
+}
+
+const saveCurrentEvtxLog = async () => {
+  if (!events.value.length) {
+    ElMessage({
+      type: 'warning',
+      message: '暂无可保存的 EVTX 解析记录',
+      duration: 1800
+    })
+    return
+  }
+
+  savingEvtxLog.value = true
+  try {
+    const snapshot = getLogSnapshot()
+    const content = buildPortableLogHtml(snapshot)
+    const defaultName = createDefaultLogFileName(`EVTX日志_${sourceFileName.value || 'events'}`)
+    const filePath = await SaveManualLogFile(defaultName, content)
+    if (!filePath) {
+      ElMessage({
+        type: 'info',
+        message: '已取消保存',
+        duration: 1600
+      })
+      return
+    }
+    ElMessage({
+      type: 'success',
+      message: `EVTX记录已保存：${filePath}`,
+      duration: 3000
+    })
+  } catch (error) {
+    console.error('保存EVTX日志失败:', error)
+    ElMessage({
+      type: 'error',
+      message: error instanceof Error ? error.message : '保存EVTX日志失败',
+      duration: 2500
+    })
+  } finally {
+    savingEvtxLog.value = false
+  }
 }
 
 // 获取事件级别的样式
@@ -158,6 +228,25 @@ const normalizeDisplayValue = (value: unknown) => {
   if (value === undefined || value === null) return '-'
   const text = String(value).trim()
   return text === '' ? '-' : text
+}
+
+const formatJsonValue = (value: unknown) => {
+  if (value === undefined || value === null) return '-'
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
+const getCurrentDisplayTime = () => {
+  return new Date().toLocaleString('zh-CN', { hour12: false })
+}
+
+const getFileNameFromPath = (filePath: string) => {
+  if (!filePath) return ''
+  const normalized = filePath.replace(/\\/g, '/')
+  return normalized.split('/').filter(Boolean).pop() || filePath
 }
 
 const getEventDataValue = (event: pkg.EVTXEvent | null, key: string) => {
@@ -347,14 +436,31 @@ const handleRowClick = (row: pkg.EVTXEvent) => {
 }
 
 const getLogSnapshot = (): LogSnapshot => ({
-  title: 'EVTX日志',
-  description: 'EVTX 事件日志查询结果，导出当前搜索、快速筛选和列筛选后的全部事件。',
+  title: `EVTX日志${sourceFileName.value ? `-${sourceFileName.value}` : ''}`,
+  description: '用户上传 EVTX 事件日志解析结果。报告内嵌当前筛选后的事件表和原始详情字段，可复制到其他电脑后离线打开、搜索、分页查看。',
   filters: {
+    上传文件: sourceFileName.value || '-',
+    上传路径: sourceFilePath.value || '-',
+    解析时间: parsedAt.value || '-',
+    原始事件数: events.value.length,
+    当前保存事件数: filteredEvents.value.length,
     搜索关键字: searchQuery.value,
     快速筛选: getQuickFilterLabel(),
     ...getColumnFilterSnapshot()
   },
   sections: [
+    {
+      title: 'EVTX概览',
+      items: [
+        { label: '上传文件', value: sourceFileName.value || '-' },
+        { label: '上传路径', value: sourceFilePath.value || '-' },
+        { label: '解析时间', value: parsedAt.value || '-' },
+        { label: '原始事件数', value: events.value.length },
+        { label: '当前保存事件数', value: filteredEvents.value.length },
+        { label: '快速筛选', value: getQuickFilterLabel() },
+        { label: '搜索关键字', value: searchQuery.value || '-' }
+      ]
+    },
     {
       title: 'EVTX事件',
       columns: [
@@ -373,8 +479,19 @@ const getLogSnapshot = (): LogSnapshot => ({
         { key: 'process', label: '进程' },
         { key: 'provider', label: '提供者' },
         { key: 'level', label: '级别' },
+        { key: 'channel', label: '通道' },
         { key: 'computer', label: '计算机' },
-        { key: 'description', label: '描述' }
+        { key: 'user_id', label: '用户ID' },
+        { key: 'process_id', label: '进程ID' },
+        { key: 'thread_id', label: '线程ID' },
+        { key: 'task', label: '任务' },
+        { key: 'opcode', label: '操作码' },
+        { key: 'keywords', label: '关键词' },
+        { key: 'description', label: '描述' },
+        { key: 'message', label: '消息' },
+        { key: 'event_data_json', label: '事件数据JSON' },
+        { key: 'system_info_json', label: '系统信息JSON' },
+        { key: 'user_data_json', label: '用户数据JSON' }
       ],
       rows: filteredEvents.value.map(event => ({
         time: event.time,
@@ -392,8 +509,19 @@ const getLogSnapshot = (): LogSnapshot => ({
         process: getEventDataValue(event, 'LogonProcessName'),
         provider: event.provider,
         level: event.level,
+        channel: event.channel,
         computer: event.computer,
-        description: event.description
+        user_id: event.user_id,
+        process_id: event.process_id,
+        thread_id: event.thread_id,
+        task: event.task,
+        opcode: event.opcode,
+        keywords: event.keywords,
+        description: event.description,
+        message: event.message,
+        event_data_json: formatJsonValue(event.event_data),
+        system_info_json: formatJsonValue(event.system_info),
+        user_data_json: formatJsonValue(event.user_data)
       }))
     }
   ]
@@ -402,8 +530,15 @@ const getLogSnapshot = (): LogSnapshot => ({
 // 暴露方法给父组件
 defineExpose({
   parseEvtxFile,
-  setEvents: (ev: pkg.EVTXEvent[]) => {
-    events.value = ev
+  setEvents: (ev: pkg.EVTXEvent[], source?: EVTXSourceInfo) => {
+    setEventRecords(ev, source)
+  },
+  setParseResult: (result: EVTXParseResultLike) => {
+    setEventRecords(result?.events || [], {
+      file_path: result?.file_path,
+      file_name: result?.file_name,
+      parsed_at: result?.parsed_at
+    })
   },
   refresh: () => {
     return Promise.resolve()
@@ -442,6 +577,31 @@ defineExpose({
             登录失败
           </el-radio-button>
         </el-radio-group>
+      </div>
+
+      <div class="evtx-actions">
+        <div class="evtx-source" :title="sourceFilePath || selectedSourceName">
+          <span>文件</span>
+          <strong>{{ selectedSourceName }}</strong>
+          <em>{{ filteredEvents.length }} / {{ events.length }} 条</em>
+        </div>
+        <el-button
+          type="primary"
+          plain
+          :icon="Download"
+          :disabled="!events.length"
+          :loading="savingEvtxLog"
+          @click="saveCurrentEvtxLog"
+        >
+          保存当前结果
+        </el-button>
+        <el-button
+          plain
+          :disabled="!events.length"
+          @click="exportEvents"
+        >
+          导出JSON
+        </el-button>
       </div>
     </div>
 
@@ -740,6 +900,7 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
   padding: 16px;
   background: rgba(255, 255, 255, 0.95);
@@ -757,6 +918,44 @@ defineExpose({
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.evtx-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 280px;
+}
+
+.evtx-source {
+  display: grid;
+  gap: 2px;
+  max-width: 260px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.evtx-source span,
+.evtx-source em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: normal;
+}
+
+.evtx-source strong {
+  overflow: hidden;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .column-filter-bar {

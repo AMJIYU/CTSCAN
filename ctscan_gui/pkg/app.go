@@ -30,6 +30,15 @@ func (a *App) Startup(ctx context.Context) {
 
 // SelectAndParseEVTXFile 弹窗选择EVTX文件并解析
 func (a *App) SelectAndParseEVTXFile() ([]EVTXEvent, error) {
+	result, err := a.SelectAndParseEVTXFileWithInfo()
+	if err != nil {
+		return nil, err
+	}
+	return result.Events, nil
+}
+
+// SelectAndParseEVTXFileWithInfo 弹窗选择EVTX文件，解析后返回事件和源文件元数据
+func (a *App) SelectAndParseEVTXFileWithInfo() (*EVTXParseResult, error) {
 	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "选择EVTX文件",
 		Filters: []runtime.FileFilter{
@@ -42,5 +51,5 @@ func (a *App) SelectAndParseEVTXFile() ([]EVTXEvent, error) {
 	if filePath == "" {
 		return nil, fmt.Errorf("未选择文件")
 	}
-	return a.ParseEVTXFile(filePath)
+	return a.ParseEVTXFileWithInfo(filePath)
 }

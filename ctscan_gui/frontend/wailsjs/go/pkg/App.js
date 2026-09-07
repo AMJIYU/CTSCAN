@@ -74,6 +74,10 @@ export function ParseEVTXFile(arg1) {
   return window['go']['pkg']['App']['ParseEVTXFile'](arg1);
 }
 
+export function ParseEVTXFileWithInfo(arg1) {
+  return window['go']['pkg']['App']['ParseEVTXFileWithInfo'](arg1);
+}
+
 export function SaveCronTasks(arg1) {
   return window['go']['pkg']['App']['SaveCronTasks'](arg1);
 }
@@ -132,4 +136,8 @@ export function SaveUserInfo(arg1) {
 
 export function SelectAndParseEVTXFile() {
   return window['go']['pkg']['App']['SelectAndParseEVTXFile']();
+}
+
+export function SelectAndParseEVTXFileWithInfo() {
+  return window['go']['pkg']['App']['SelectAndParseEVTXFileWithInfo']();
 }

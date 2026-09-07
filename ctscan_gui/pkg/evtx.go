@@ -45,6 +45,14 @@ type EVTXEvent struct {
 	UserData map[string]any `json:"user_data"`
 }
 
+type EVTXParseResult struct {
+	FilePath string      `json:"file_path"`
+	FileName string      `json:"file_name"`
+	ParsedAt string      `json:"parsed_at"`
+	Total    int         `json:"total"`
+	Events   []EVTXEvent `json:"events"`
+}
+
 var (
 	providerPath      = evtx.Path("/Event/System/Provider/Name")
 	levelPath         = evtx.Path("/Event/System/Level")
@@ -96,6 +104,20 @@ func (a *App) ParseEVTXFile(filePath string) ([]EVTXEvent, error) {
 
 	log.Printf("解析完成，共解析 %d 个事件", len(events))
 	return events, nil
+}
+
+func (a *App) ParseEVTXFileWithInfo(filePath string) (*EVTXParseResult, error) {
+	events, err := a.ParseEVTXFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return &EVTXParseResult{
+		FilePath: filePath,
+		FileName: filepath.Base(filePath),
+		ParsedAt: time.Now().Format("2006-01-02 15:04:05"),
+		Total:    len(events),
+		Events:   events,
+	}, nil
 }
 
 func parseEVTXEvent(event *evtx.GoEvtxMap) EVTXEvent {
