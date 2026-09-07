@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"bufio"
-	"os/exec"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -28,7 +27,7 @@ func (a *App) GetLoginSuccessRecords() []LoginSuccess {
 	case "windows":
 		records = a.getWindowsLoginSuccessRecords()
 	case "linux":
-		out, err := exec.Command("grep", "Accepted", "/var/log/auth.log").CombinedOutput()
+		out, err := backgroundCommand("grep", "Accepted", "/var/log/auth.log").CombinedOutput()
 		if err != nil {
 			return records
 		}
@@ -40,7 +39,7 @@ func (a *App) GetLoginSuccessRecords() []LoginSuccess {
 			records = append(records, LoginSuccess{Time: line[:15]})
 		}
 	case "darwin":
-		cmd := exec.Command("last")
+		cmd := backgroundCommand("last")
 		output, err := cmd.Output()
 		if err != nil {
 			return records

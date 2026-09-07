@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -47,43 +47,7 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 	var ips, macs, ifaces []string
 	hostname, _ := os.Hostname()
 	netIfs, _ := net.Interfaces()
-
-	// 获取默认网关
-	gateway := ""
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err == nil {
-		defer conn.Close()
-		localAddr := conn.LocalAddr().(*net.UDPAddr)
-		ip := localAddr.IP.String()
-
-		// 获取该 IP 对应的接口
-		for _, iface := range netIfs {
-			addrs, _ := iface.Addrs()
-			for _, addr := range addrs {
-				if strings.Contains(addr.String(), ip) {
-					// 获取该接口的默认路由
-					cmd := exec.Command("route", "-n", "get", "default")
-					output, err := cmd.Output()
-					if err == nil {
-						lines := strings.Split(string(output), "\n")
-						for _, line := range lines {
-							if strings.Contains(line, "gateway") {
-								fields := strings.Fields(line)
-								if len(fields) >= 2 {
-									gateway = fields[len(fields)-1]
-									break
-								}
-							}
-						}
-					}
-					break
-				}
-			}
-			if gateway != "" {
-				break
-			}
-		}
-	}
+	gateway := getDefaultGateway()
 
 	// 获取网络流量统计
 	ioStats, _ := gopsnet.IOCounters(true)
@@ -144,6 +108,48 @@ func (a *App) GetNetworkInfo() NetworkInfo {
 		InterfaceStats: interfaceStats,
 		Gateway:        gateway,
 	}
+}
+
+func getDefaultGateway() string {
+	switch runtime.GOOS {
+	case "windows":
+		output, err := backgroundCommand("route.exe", "print", "-4", "0.0.0.0").Output()
+		if err != nil {
+			return ""
+		}
+		for _, line := range strings.Split(string(output), "\n") {
+			fields := strings.Fields(line)
+			if len(fields) >= 5 && fields[0] == "0.0.0.0" && fields[1] == "0.0.0.0" && fields[2] != "On-link" {
+				return fields[2]
+			}
+		}
+	case "darwin":
+		output, err := backgroundCommand("route", "-n", "get", "default").Output()
+		if err != nil {
+			return ""
+		}
+		for _, line := range strings.Split(string(output), "\n") {
+			if strings.Contains(line, "gateway") {
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					return fields[len(fields)-1]
+				}
+			}
+		}
+	case "linux":
+		output, err := backgroundCommand("ip", "route", "show", "default").Output()
+		if err != nil {
+			return ""
+		}
+		fields := strings.Fields(string(output))
+		for i, field := range fields {
+			if field == "via" && i+1 < len(fields) {
+				return fields[i+1]
+			}
+		}
+	}
+
+	return ""
 }
 
 func protoName(t uint32) string {

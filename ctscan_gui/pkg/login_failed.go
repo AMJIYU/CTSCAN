@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"encoding/json"
-	"os/exec"
 	"runtime"
 	"strings"
 	"time"
@@ -27,7 +26,7 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 	case "windows":
 		records = a.getWindowsLoginFailedRecords()
 	case "linux":
-		out, err := exec.Command("grep", "Failed password", "/var/log/auth.log").CombinedOutput()
+		out, err := backgroundCommand("grep", "Failed password", "/var/log/auth.log").CombinedOutput()
 		if err != nil {
 			println("Linux 获取登录失败记录错误:", err.Error())
 			return records
@@ -42,7 +41,7 @@ func (a *App) GetLoginFailedRecords() []LoginFailed {
 	case "darwin":
 		println("开始获取 macOS 登录失败记录...")
 		// 使用最简单的查询方式，只获取最近的100条记录
-		out, err := exec.Command("log", "show", "--predicate", "eventMessage CONTAINS 'Failed'", "--last", "24h", "--limit", "10000", "--style", "json").CombinedOutput()
+		out, err := backgroundCommand("log", "show", "--predicate", "eventMessage CONTAINS 'Failed'", "--last", "24h", "--limit", "10000", "--style", "json").CombinedOutput()
 		if err != nil {
 			println("查询失败:", err.Error())
 			return records

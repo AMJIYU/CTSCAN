@@ -20,6 +20,13 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = computed(() => filteredLogs.value.length)
+const statusOptions = computed(() => {
+  const defaults = ['成功', '失败', '重连', '断开', '登出']
+  const values = logs.value
+    .map(log => log.status)
+    .filter((status): status is string => Boolean(status))
+  return Array.from(new Set([...defaults, ...values]))
+})
 
 // 筛选条件
 const filters = ref({
@@ -55,6 +62,13 @@ const handleCurrentChange = (val: number) => {
 const handleSizeChange = (val: number) => {
   pageSize.value = val
   currentPage.value = 1
+}
+
+const getStatusTagType = (status: string) => {
+  if (status === '成功' || status === '重连') return 'success'
+  if (status === '失败') return 'danger'
+  if (status === '断开' || status === '登出') return 'warning'
+  return 'info'
 }
 
 // 刷新日志
@@ -205,14 +219,18 @@ defineExpose({ refresh, getLogSnapshot })
                 size="small"
                 clearable
               >
-                <el-option label="成功" value="成功" />
-                <el-option label="失败" value="失败" />
+                <el-option
+                  v-for="status in statusOptions"
+                  :key="status"
+                  :label="status"
+                  :value="status"
+                />
               </el-select>
             </div>
           </template>
           <template #default="{ row }">
             <el-tag 
-              :type="row.status === '成功' ? 'success' : 'danger'"
+              :type="getStatusTagType(row.status)"
               size="small"
             >
               {{ row.status }}

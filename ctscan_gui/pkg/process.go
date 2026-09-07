@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
-	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/shirou/gopsutil/v4/process"
@@ -49,7 +49,11 @@ func getFileTimes(path string) (ctime, mtime int64) {
 }
 
 func getSignature(path string) string {
-	out, err := exec.Command("codesign", "-dv", "--verbose=4", path).CombinedOutput()
+	if runtime.GOOS != "darwin" {
+		return ""
+	}
+
+	out, err := backgroundCommand("codesign", "-dv", "--verbose=4", path).CombinedOutput()
 	if err != nil {
 		return ""
 	}

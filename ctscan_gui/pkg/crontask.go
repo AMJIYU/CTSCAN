@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"fmt"
-	"os/exec"
 	"runtime"
 	"strings"
 
@@ -104,7 +103,7 @@ func (a *App) getWindowsTasks() []CronTask {
 }
 
 func (a *App) getUnixTasks() []CronTask {
-	out, err := exec.Command("crontab", "-l").Output()
+	out, err := backgroundCommand("crontab", "-l").Output()
 	if err != nil {
 		return nil
 	}

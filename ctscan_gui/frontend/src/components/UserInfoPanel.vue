@@ -26,6 +26,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const loading = ref(false)
+const userLoadTimeoutMs = 10000
 
 // 筛选条件
 const filters = ref({
@@ -77,26 +78,68 @@ const handleSizeChange = (val: number) => {
   currentPage.value = 1
 }
 
-// 添加 refresh 方法，用于重新获取用户信息
-const refresh = async () => {
-  loading.value = true
-  try {
-    const [info, users] = await Promise.all([
-      GetUserInfo(),
-      GetAllUsers()
-    ])
-    userInfo.value = info
-    allUsers.value = users
-    total.value = users.length
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  if (error && typeof error === 'object') {
+    const value = error as Record<string, unknown>
+    if (typeof value.message === 'string' && value.message.trim()) return value.message
+    if (typeof value.error === 'string' && value.error.trim()) return value.error
+  }
+  return fallback
+}
 
-    // 保存当前用户信息到数据库
-    await SaveUserInfo(info)
-    // 保存所有用户信息到数据库
+const withTimeout = async <T,>(task: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timer: number | undefined
+  try {
+    return await Promise.race([
+      task,
+      new Promise<T>((_, reject) => {
+        timer = window.setTimeout(() => reject(new Error(message)), timeoutMs)
+      })
+    ])
+  } finally {
+    if (timer !== undefined) {
+      window.clearTimeout(timer)
+    }
+  }
+}
+
+const saveUsersInBackground = async (info: User, users: User[]) => {
+  try {
+    if (info.username) {
+      await SaveUserInfo(info)
+    }
     for (const user of users) {
       await SaveUserInfo(user)
     }
   } catch (error) {
-    console.error('获取用户信息失败:', error)
+    console.warn('保存用户信息到数据库失败:', error)
+  }
+}
+
+// 添加 refresh 方法，用于重新获取用户信息
+const refresh = async () => {
+  loading.value = true
+  try {
+    const info = await withTimeout(GetUserInfo(), 5000, '获取当前用户信息超时')
+    userInfo.value = info
+  } catch (error) {
+    console.error('获取当前用户信息失败:', error)
+    ElMessage.warning(getErrorMessage(error, '获取当前用户信息失败'))
+  }
+
+  try {
+    const users = await withTimeout(GetAllUsers(), userLoadTimeoutMs, '获取系统用户列表超时，已停止等待')
+    const safeUsers = Array.isArray(users) ? users : []
+    allUsers.value = safeUsers
+    total.value = safeUsers.length
+    void saveUsersInBackground(userInfo.value, safeUsers)
+  } catch (error) {
+    console.error('获取系统用户列表失败:', error)
+    allUsers.value = []
+    total.value = 0
+    ElMessage.error(getErrorMessage(error, '获取系统用户列表失败'))
   } finally {
     loading.value = false
   }
