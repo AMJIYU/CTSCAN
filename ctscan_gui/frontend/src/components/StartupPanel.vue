@@ -4,6 +4,7 @@ import { GetStartupItems, SaveStartupItems } from '../../wailsjs/go/pkg/App'
 import { Timer, Document, Filter } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { pkg } from '../../wailsjs/go/models'
+import type { LogSnapshot } from '../utils/logExport'
 
 const startupItems = ref<pkg.StartupItem[]>([])
 const currentPage = ref(1)
@@ -109,8 +110,33 @@ onMounted(() => {
   refresh()
 })
 
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '开机启动项',
+  description: '开机启动项与持久化位置查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: '开机启动项',
+      columns: [
+        { key: 'name', label: '名称' },
+        { key: 'type', label: '类型' },
+        { key: 'path', label: '路径' },
+        { key: 'enabled', label: '状态' },
+        { key: 'description', label: '描述' }
+      ],
+      rows: filteredItems.value.map(item => ({
+        name: item.name,
+        type: item.type,
+        path: item.path,
+        enabled: item.enabled ? '启用' : '禁用',
+        description: item.description
+      }))
+    }
+  ]
+})
+
 // 暴露 refresh 方法，供父组件调用
-defineExpose({ refresh })
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

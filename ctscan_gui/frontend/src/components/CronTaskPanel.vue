@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { GetCronTasks, SaveCronTasks } from '../../wailsjs/go/pkg/App'
 import { Timer, Document, Calendar } from '@element-plus/icons-vue'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface CronTask {
   line: string
@@ -207,7 +208,40 @@ onMounted(() => {
   refresh()
 })
 
-defineExpose({ refresh })
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '任务计划',
+  description: '计划任务查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: '任务计划',
+      columns: [
+        { key: 'type', label: '类型' },
+        { key: 'schedule', label: '计划' },
+        { key: 'schedule_description', label: '计划说明' },
+        { key: 'command', label: '命令/任务名' },
+        { key: 'user', label: '用户' },
+        { key: 'status', label: '状态' },
+        { key: 'lastRun', label: '上次运行' },
+        { key: 'nextRun', label: '下次运行' },
+        { key: 'line', label: '原始记录' }
+      ],
+      rows: filteredTasks.value.map(task => ({
+        type: task.type,
+        schedule: task.schedule,
+        schedule_description: task.schedule ? parseCronExpression(task.schedule) : '',
+        command: task.command,
+        user: task.user,
+        status: task.status,
+        lastRun: task.lastRun,
+        nextRun: task.nextRun,
+        line: task.line
+      }))
+    }
+  ]
+})
+
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

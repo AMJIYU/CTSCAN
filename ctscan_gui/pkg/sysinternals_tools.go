@@ -82,20 +82,31 @@ func (a *App) InstallSysinternalsTool(toolID string) (SysinternalsTool, error) {
 		return SysinternalsTool{}, err
 	}
 
-	root, err := sysinternalsCacheDir()
+	roots, err := sysinternalsInstallDirs()
 	if err != nil {
 		return SysinternalsTool{}, err
 	}
-	if err := os.MkdirAll(root, 0755); err != nil {
-		return SysinternalsTool{}, fmt.Errorf("创建工具目录失败: %w", err)
+
+	failures := make([]string, 0, len(roots))
+	for _, root := range roots {
+		if err := os.MkdirAll(root, 0755); err != nil {
+			failures = append(failures, fmt.Sprintf("%s: %v", root, err))
+			continue
+		}
+
+		targetPath := filepath.Join(root, definition.fileName)
+		if err := extractPackagedSysinternalsExecutable(definition.fileName, targetPath); err != nil {
+			failures = append(failures, fmt.Sprintf("%s: %v", targetPath, err))
+			continue
+		}
+
+		tool := a.sysinternalsTool(definition)
+		tool.LocalPath = targetPath
+		tool.Available = true
+		return tool, nil
 	}
 
-	targetPath := filepath.Join(root, definition.fileName)
-	if err := extractPackagedSysinternalsExecutable(definition.fileName, targetPath); err != nil {
-		return SysinternalsTool{}, err
-	}
-
-	return a.sysinternalsTool(definition), nil
+	return SysinternalsTool{}, fmt.Errorf("释放工具失败: %s", strings.Join(failures, "; "))
 }
 
 func (a *App) LaunchSysinternalsTool(toolID string) error {
@@ -118,18 +129,31 @@ func (a *App) LaunchSysinternalsTool(toolID string) error {
 		return fmt.Errorf("未找到 %s", definition.fileName)
 	}
 
+	if definition.requiresAdmin && packagedSysinternalsExecutableExists(definition.fileName) && shouldMigrateSysinternalsToolPath(tool.LocalPath, definition.fileName) {
+		if migratedTool, installErr := a.InstallSysinternalsTool(toolID); installErr == nil && migratedTool.LocalPath != "" {
+			tool = migratedTool
+		}
+	}
+
 	return launchWindowsTool(tool.LocalPath, definition.requiresAdmin)
 }
 
 func (a *App) OpenSysinternalsToolsFolder() error {
-	root, err := sysinternalsCacheDir()
+	roots, err := sysinternalsInstallDirs()
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(root, 0755); err != nil {
-		return fmt.Errorf("创建工具目录失败: %w", err)
+
+	failures := make([]string, 0, len(roots))
+	for _, root := range roots {
+		if err := os.MkdirAll(root, 0755); err != nil {
+			failures = append(failures, fmt.Sprintf("%s: %v", root, err))
+			continue
+		}
+		return openPath(root)
 	}
-	return openPath(root)
+
+	return fmt.Errorf("打开工具目录失败: %s", strings.Join(failures, "; "))
 }
 
 func (a *App) sysinternalsTool(definition sysinternalsToolDefinition) SysinternalsTool {
@@ -233,6 +257,9 @@ func findSysinternalsExecutable(fileName string) string {
 
 func sysinternalsSearchDirs() []string {
 	dirs := make([]string, 0, 4)
+	if installDirs, err := sysinternalsInstallDirs(); err == nil {
+		dirs = append(dirs, installDirs...)
+	}
 	if executablePath, err := os.Executable(); err == nil {
 		executableDir := filepath.Dir(executablePath)
 		dirs = append(dirs, filepath.Join(executableDir, "thirds"))
@@ -240,46 +267,73 @@ func sysinternalsSearchDirs() []string {
 	if workingDir, err := os.Getwd(); err == nil {
 		dirs = append(dirs, filepath.Join(workingDir, "thirds"))
 	}
-	if cacheDir, err := sysinternalsCacheDir(); err == nil {
-		dirs = append(dirs, cacheDir)
-	}
-	return dirs
+	return uniquePaths(dirs)
 }
 
 func sysinternalsCacheDir() (string, error) {
-	root, err := os.UserCacheDir()
+	roots, err := sysinternalsInstallDirs()
 	if err != nil {
-		return "", fmt.Errorf("获取用户缓存目录失败: %w", err)
+		return "", err
 	}
-	return filepath.Join(root, "CTScan", "Sysinternals"), nil
+	return roots[0], nil
+}
+
+func sysinternalsInstallDirs() ([]string, error) {
+	dirs := make([]string, 0, 2)
+	if stdruntime.GOOS == "windows" {
+		if programData := os.Getenv("ProgramData"); programData != "" {
+			dirs = append(dirs, filepath.Join(programData, "CTScan", "Sysinternals"))
+		}
+	}
+
+	root, err := os.UserCacheDir()
+	if err == nil && root != "" {
+		dirs = append(dirs, filepath.Join(root, "CTScan", "Sysinternals"))
+	}
+
+	dirs = uniquePaths(dirs)
+	if len(dirs) == 0 {
+		if err != nil {
+			return nil, fmt.Errorf("获取工具目录失败: %w", err)
+		}
+		return nil, fmt.Errorf("获取工具目录失败")
+	}
+	return dirs, nil
+}
+
+func shouldMigrateSysinternalsToolPath(currentPath, fileName string) bool {
+	preferredDir, err := sysinternalsCacheDir()
+	if err != nil || preferredDir == "" {
+		return false
+	}
+	preferredPath := filepath.Join(preferredDir, fileName)
+	return filepath.Clean(currentPath) != filepath.Clean(preferredPath)
+}
+
+func uniquePaths(paths []string) []string {
+	seen := make(map[string]struct{}, len(paths))
+	result := make([]string, 0, len(paths))
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+		cleaned := filepath.Clean(path)
+		key := cleaned
+		if stdruntime.GOOS == "windows" {
+			key = strings.ToLower(cleaned)
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, cleaned)
+	}
+	return result
 }
 
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
-}
-
-func launchWindowsTool(path string, elevated bool) error {
-	if !fileExists(path) {
-		return fmt.Errorf("工具文件不存在: %s", path)
-	}
-	if !elevated {
-		return exec.Command(path).Start()
-	}
-
-	output, err := exec.Command(
-		"powershell.exe",
-		"-NoProfile",
-		"-ExecutionPolicy",
-		"Bypass",
-		"-Command",
-		"Start-Process -FilePath $args[0] -Verb RunAs",
-		path,
-	).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("以管理员权限启动失败: %w %s", err, strings.TrimSpace(string(output)))
-	}
-	return nil
 }
 
 func openPath(path string) error {

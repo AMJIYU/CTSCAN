@@ -48,6 +48,8 @@ export function SaveLoginFailed(arg1:Array<pkg.LoginFailed>):Promise<void>;
 
 export function SaveLoginSuccess(arg1:Array<pkg.LoginSuccess>):Promise<void>;
 
+export function SaveManualLogFile(arg1:string,arg2:string):Promise<string>;
+
 export function SaveNetworkConnections(arg1:Array<pkg.NetworkConn>):Promise<void>;
 
 export function SaveNetworkInfo(arg1:pkg.NetworkInfo):Promise<void>;

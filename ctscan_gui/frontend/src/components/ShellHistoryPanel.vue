@@ -156,6 +156,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Timer, Operation, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetShellHistory, SaveShellHistory } from '../../wailsjs/go/pkg/App'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface ShellHistory {
   time: string;
@@ -278,8 +279,26 @@ onMounted(() => {
   refresh()
 })
 
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '命令记录',
+  description: '命令执行历史查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: '命令执行记录',
+      columns: [
+        { key: 'time', label: '时间' },
+        { key: 'command', label: '命令' },
+        { key: 'user', label: '用户' },
+        { key: 'shell', label: 'Shell' }
+      ],
+      rows: filteredRecords.value.map(record => ({ ...record }))
+    }
+  ]
+})
+
 // 暴露 refresh 方法，供父组件调用
-defineExpose({ refresh })
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <style scoped>

@@ -192,6 +192,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Timer, Document, User, Location } from '@element-plus/icons-vue'
 import { GetLoginFailedRecords, SaveLoginFailed } from '../../wailsjs/go/pkg/App'
+import type { LogSnapshot } from '../utils/logExport'
 
 declare global {
   interface Window {
@@ -296,8 +297,28 @@ onMounted(() => {
   fetchRecords()
 })
 
-// 暴露 fetchRecords 方法，供父组件调用
-defineExpose({ fetchRecords })
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '登录失败记录',
+  description: '登录失败记录查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: '登录失败记录',
+      columns: [
+        { key: 'time', label: '时间' },
+        { key: 'event_type', label: '事件类型' },
+        { key: 'source', label: '来源' },
+        { key: 'username', label: '用户名' },
+        { key: 'ip_address', label: 'IP地址' },
+        { key: 'reason', label: '失败原因' }
+      ],
+      rows: filteredRecords.value.map(record => ({ ...record }))
+    }
+  ]
+})
+
+// 暴露 fetchRecords/refresh 方法，供父组件调用
+defineExpose({ fetchRecords, refresh: fetchRecords, getLogSnapshot })
 </script>
 
 <style scoped>

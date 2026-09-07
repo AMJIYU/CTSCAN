@@ -3,6 +3,8 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { GetNetworkInfo, GetNetworkConnections, SaveNetworkInfo, SaveNetworkConnections } from '../../wailsjs/go/pkg/App'
 import { Monitor, Connection, DataLine, CopyDocument, Filter } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { formatBytes } from '../utils/logExport'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface InterfaceStats {
   name: string;
@@ -165,8 +167,54 @@ onMounted(() => {
   refresh()
 })
 
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '网络信息',
+  description: '网络基础信息、网卡流量统计与网络连接查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: '网络基本信息',
+      items: [
+        { label: '主机名', value: networkInfo.value.hostname },
+        { label: '网关', value: networkInfo.value.gateway },
+        { label: 'IP地址', value: networkInfo.value.ips },
+        { label: 'MAC地址', value: networkInfo.value.macs },
+        { label: '网络接口', value: networkInfo.value.interfaces }
+      ]
+    },
+    {
+      title: '网络连接详情',
+      columns: [
+        { key: 'proto', label: '协议' },
+        { key: 'local_addr', label: '本地地址' },
+        { key: 'remote_addr', label: '远程地址' },
+        { key: 'status', label: '状态' },
+        { key: 'pid', label: 'PID' }
+      ],
+      rows: filteredConnections.value.map(conn => ({ ...conn }))
+    },
+    {
+      title: '网卡流量统计',
+      columns: [
+        { key: 'name', label: '接口' },
+        { key: 'bytes_sent', label: '发送字节' },
+        { key: 'bytes_recv', label: '接收字节' },
+        { key: 'packets_sent', label: '发送包数' },
+        { key: 'packets_recv', label: '接收包数' }
+      ],
+      rows: activeInterfaceStats.value.map(stat => ({
+        name: stat.name,
+        bytes_sent: formatBytes(stat.bytes_sent),
+        bytes_recv: formatBytes(stat.bytes_recv),
+        packets_sent: stat.packets_sent,
+        packets_recv: stat.packets_recv
+      }))
+    }
+  ]
+})
+
 // 暴露 refresh 方法，供父组件调用
-defineExpose({ refresh })
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

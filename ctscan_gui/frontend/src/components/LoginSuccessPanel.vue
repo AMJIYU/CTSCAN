@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { GetLoginSuccessRecords, SaveLoginSuccess } from '../../wailsjs/go/pkg/App'
 import { ElMessage } from 'element-plus'
 import { Timer, User, Location, Document, Key } from '@element-plus/icons-vue'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface LoginSuccess {
   time: string
@@ -112,8 +113,35 @@ onMounted(() => {
   refresh()
 })
 
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '登录成功记录',
+  description: '登录成功记录查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: '登录成功记录',
+      columns: [
+        { key: 'time', label: '时间' },
+        { key: 'username', label: '用户名' },
+        { key: 'ip_address', label: 'IP地址' },
+        { key: 'source', label: '来源' },
+        { key: 'event_id', label: '事件ID' },
+        { key: 'event_type', label: '事件类型' }
+      ],
+      rows: filteredRecords.value.map(record => ({
+        time: formatTime(record.time),
+        username: record.username,
+        ip_address: record.ip_address,
+        source: record.source,
+        event_id: record.event_id,
+        event_type: record.event_type
+      }))
+    }
+  ]
+})
+
 // 暴露 refresh 方法，供父组件调用
-defineExpose({ refresh })
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

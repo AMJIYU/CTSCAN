@@ -94,6 +94,10 @@ export function SaveLoginSuccess(arg1) {
   return window['go']['pkg']['App']['SaveLoginSuccess'](arg1);
 }
 
+export function SaveManualLogFile(arg1, arg2) {
+  return window['go']['pkg']['App']['SaveManualLogFile'](arg1, arg2);
+}
+
 export function SaveNetworkConnections(arg1) {
   return window['go']['pkg']['App']['SaveNetworkConnections'](arg1);
 }

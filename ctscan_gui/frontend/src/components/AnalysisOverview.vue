@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick, computed } from 'vue';
 import SystemInfoPanel from './SystemInfoPanel.vue'
 import UserInfoPanel from './UserInfoPanel.vue'
 import NetworkInfoPanel from './NetworkInfoPanel.vue'
@@ -26,10 +26,13 @@ import {
   Cpu,
   UploadFilled,
   Document,
-  Tools
+  Tools,
+  Download
 } from '@element-plus/icons-vue'
 import { ElMessage, ElLoading } from 'element-plus'
-import { ParseEVTXFile, SelectAndParseEVTXFile } from '../../wailsjs/go/pkg/App'
+import { SaveManualLogFile, SelectAndParseEVTXFile } from '../../wailsjs/go/pkg/App'
+import { buildPortableLogHtml, createDefaultLogFileName } from '../utils/logExport'
+import type { LogSnapshot } from '../utils/logExport'
 
 // 使用ref引用每个选项卡组件
 const systemInfoRef = ref<InstanceType<typeof SystemInfoPanel> | null>(null);
@@ -48,6 +51,7 @@ const sysinternalsRef = ref<InstanceType<typeof SysinternalsPanel> | null>(null)
 
 // 当前激活的面板
 const activePanel = ref('system');
+const savingLog = ref(false)
 
 // 面板配置
 const panels = [
@@ -65,6 +69,89 @@ const panels = [
   { id: 'file-monitor', name: '文件监控', icon: Document, component: FileMonitorPanel },
   { id: 'evtx', name: 'EVTX日志', icon: Document, component: EvtxPanel }
 ];
+
+const activePanelName = computed(() => {
+  return panels.find(panel => panel.id === activePanel.value)?.name || activePanel.value
+})
+
+const getActivePanelInstance = () => {
+  switch (activePanel.value) {
+    case 'system':
+      return systemInfoRef.value
+    case 'user':
+      return userInfoRef.value
+    case 'network':
+      return networkInfoRef.value
+    case 'startup':
+      return startupRef.value
+    case 'cron':
+      return cronTaskRef.value
+    case 'process':
+      return processRef.value
+    case 'sysinternals':
+      return sysinternalsRef.value
+    case 'login-success':
+      return loginSuccessRef.value
+    case 'login-failed':
+      return loginFailedRef.value
+    case 'shell-history':
+      return shellHistoryRef.value
+    case 'rdp':
+      return rdploginRef.value
+    case 'file-monitor':
+      return fileMonitorRef.value
+    case 'evtx':
+      return evtxRef.value
+    default:
+      return null
+  }
+}
+
+const buildFallbackSnapshot = (): LogSnapshot => ({
+  title: activePanelName.value,
+  description: '当前页面文本快照。该页面未提供结构化导出数据。',
+  sections: [
+    {
+      title: '页面内容',
+      content: document.querySelector('.content-panel')?.textContent || '暂无内容'
+    }
+  ]
+})
+
+const handleSaveCurrentLog = async () => {
+  savingLog.value = true
+  try {
+    await nextTick()
+    const activeComponent = getActivePanelInstance() as { getLogSnapshot?: () => LogSnapshot | Promise<LogSnapshot> } | null
+    const snapshot = activeComponent?.getLogSnapshot
+      ? await activeComponent.getLogSnapshot()
+      : buildFallbackSnapshot()
+    const content = buildPortableLogHtml(snapshot)
+    const filePath = await SaveManualLogFile(createDefaultLogFileName(snapshot.title || activePanelName.value), content)
+    if (!filePath) {
+      ElMessage({
+        type: 'info',
+        message: '已取消保存',
+        duration: 1600
+      })
+      return
+    }
+    ElMessage({
+      type: 'success',
+      message: `日志已保存：${filePath}`,
+      duration: 3000
+    })
+  } catch (error) {
+    console.error('保存日志失败:', error)
+    ElMessage({
+      type: 'error',
+      message: error instanceof Error ? error.message : '保存日志失败',
+      duration: 2500
+    })
+  } finally {
+    savingLog.value = false
+  }
+}
 
 // 添加重新获取信息的方法
 const refreshInfo = async () => {
@@ -253,19 +340,37 @@ onMounted(() => {
 
       <!-- 右侧内容区域 -->
       <div class="content-area">
-        <SystemInfoPanel v-if="activePanel === 'system'" ref="systemInfoRef" />
-        <UserInfoPanel v-if="activePanel === 'user'" ref="userInfoRef" />
-        <NetworkInfoPanel v-if="activePanel === 'network'" ref="networkInfoRef" />
-        <StartupPanel v-if="activePanel === 'startup'" ref="startupRef" />
-        <CronTaskPanel v-if="activePanel === 'cron'" ref="cronTaskRef" />
-        <ProcessPanel v-if="activePanel === 'process'" ref="processRef" />
-        <SysinternalsPanel v-if="activePanel === 'sysinternals'" ref="sysinternalsRef" />
-        <LoginSuccessPanel v-if="activePanel === 'login-success'" ref="loginSuccessRef" />
-        <LoginFailedPanel v-if="activePanel === 'login-failed'" ref="loginFailedRef" />
-        <ShellHistoryPanel v-if="activePanel === 'shell-history'" ref="shellHistoryRef" />
-        <RdploginPanel v-if="activePanel === 'rdp'" ref="rdploginRef" />
-        <FileMonitorPanel v-if="activePanel === 'file-monitor'" ref="fileMonitorRef" />
-        <EvtxPanel v-if="activePanel === 'evtx'" ref="evtxRef" />
+        <div class="content-toolbar">
+          <div class="content-toolbar-title">
+            <span>{{ activePanelName }}</span>
+            <small>保存当前查询/筛选结果为离线 HTML 报告，可复制到其他电脑打开</small>
+          </div>
+          <el-button
+            type="primary"
+            plain
+            :icon="Download"
+            :loading="savingLog"
+            @click="handleSaveCurrentLog"
+          >
+            保存日志
+          </el-button>
+        </div>
+
+        <div class="content-panel">
+          <SystemInfoPanel v-if="activePanel === 'system'" ref="systemInfoRef" />
+          <UserInfoPanel v-if="activePanel === 'user'" ref="userInfoRef" />
+          <NetworkInfoPanel v-if="activePanel === 'network'" ref="networkInfoRef" />
+          <StartupPanel v-if="activePanel === 'startup'" ref="startupRef" />
+          <CronTaskPanel v-if="activePanel === 'cron'" ref="cronTaskRef" />
+          <ProcessPanel v-if="activePanel === 'process'" ref="processRef" />
+          <SysinternalsPanel v-if="activePanel === 'sysinternals'" ref="sysinternalsRef" />
+          <LoginSuccessPanel v-if="activePanel === 'login-success'" ref="loginSuccessRef" />
+          <LoginFailedPanel v-if="activePanel === 'login-failed'" ref="loginFailedRef" />
+          <ShellHistoryPanel v-if="activePanel === 'shell-history'" ref="shellHistoryRef" />
+          <RdploginPanel v-if="activePanel === 'rdp'" ref="rdploginRef" />
+          <FileMonitorPanel v-if="activePanel === 'file-monitor'" ref="fileMonitorRef" />
+          <EvtxPanel v-if="activePanel === 'evtx'" ref="evtxRef" />
+        </div>
       </div>
     </div>
   </div>
@@ -334,7 +439,6 @@ onMounted(() => {
 
 .content-area {
   flex: 1;
-
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 16px;
@@ -342,7 +446,38 @@ onMounted(() => {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.05);
   min-height: 600px;
+}
 
+.content-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(64, 158, 255, 0.12);
+}
+
+.content-toolbar-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.content-toolbar-title span {
+  color: #1a202c;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.content-toolbar-title small {
+  color: #718096;
+  font-size: 12px;
+}
+
+.content-panel {
+  min-width: 0;
 }
 
 .action-card {

@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { GetUserInfo, GetAllUsers, SaveUserInfo } from '../../wailsjs/go/pkg/App'
 import { User, UserFilled, CopyDocument } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface User {
   username: string
@@ -131,8 +132,37 @@ onMounted(() => {
   refresh()
 })
 
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '用户信息',
+  description: '当前用户信息与系统用户列表查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: '当前用户信息',
+      items: [
+        { label: '用户名', value: userInfo.value.username },
+        { label: 'UID', value: userInfo.value.uid },
+        { label: 'GID', value: userInfo.value.gid },
+        { label: '家目录', value: userInfo.value.home_dir },
+        { label: '显示名', value: userInfo.value.name }
+      ]
+    },
+    {
+      title: '系统用户列表',
+      columns: [
+        { key: 'username', label: '用户名' },
+        { key: 'uid', label: 'UID' },
+        { key: 'gid', label: 'GID' },
+        { key: 'home_dir', label: '家目录' },
+        { key: 'name', label: '显示名' }
+      ],
+      rows: filteredUsers.value.map(user => ({ ...user }))
+    }
+  ]
+})
+
 // 暴露 refresh 方法，供父组件调用
-defineExpose({ refresh })
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

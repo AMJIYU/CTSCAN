@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { Document, Timer, User, Folder, Link } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetSensitiveFileInfo, SaveFileMonitor } from '../../wailsjs/go/pkg/App'
+import { formatBytes } from '../utils/logExport'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface FileInfo {
   path: string
@@ -150,8 +152,49 @@ onMounted(() => {
   refresh()
 })
 
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '文件监控',
+  description: '敏感文件监控查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: '敏感文件监控',
+      columns: [
+        { key: 'path', label: '文件路径' },
+        { key: 'description', label: '描述' },
+        { key: 'mod_time', label: '修改时间' },
+        { key: 'create_time', label: '创建时间' },
+        { key: 'access_time', label: '访问时间' },
+        { key: 'change_time', label: '属性修改时间' },
+        { key: 'type', label: '类型' },
+        { key: 'exists', label: '是否存在' },
+        { key: 'size', label: '大小' },
+        { key: 'permissions', label: '权限' },
+        { key: 'mode', label: '模式' },
+        { key: 'owner', label: '所有者' },
+        { key: 'group', label: '组' }
+      ],
+      rows: filteredFiles.value.map(file => ({
+        path: file.path,
+        description: file.description,
+        mod_time: formatTime(file.mod_time).display,
+        create_time: formatTime(file.create_time).display,
+        access_time: formatTime(file.access_time).display,
+        change_time: formatTime(file.change_time).display,
+        type: getFileTypeTag(file).text,
+        exists: file.exists ? '存在' : '不存在',
+        size: file.is_dir ? '-' : formatBytes(file.size),
+        permissions: file.permissions,
+        mode: file.mode,
+        owner: file.owner,
+        group: file.group
+      }))
+    }
+  ]
+})
+
 // 暴露 refresh 方法，供父组件调用
-defineExpose({ refresh })
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

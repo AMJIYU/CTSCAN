@@ -3,6 +3,7 @@ import { ref, computed, onMounted, defineExpose } from 'vue'
 import { Timer, User, Location, InfoFilled, Monitor } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetRDPLoginLogs, SaveRDPLogin } from '../../wailsjs/go/pkg/App'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface RDPLoginInfo {
   time: string
@@ -89,7 +90,26 @@ onMounted(async () => {
   await refresh()
 })
 
-defineExpose({ refresh })
+const getLogSnapshot = (): LogSnapshot => ({
+  title: 'RDP登录日志',
+  description: 'RDP 登录记录查询结果。',
+  filters: { ...filters.value },
+  sections: [
+    {
+      title: 'RDP登录日志',
+      columns: [
+        { key: 'time', label: '时间' },
+        { key: 'username', label: '用户名' },
+        { key: 'ip', label: 'IP地址' },
+        { key: 'status', label: '状态' },
+        { key: 'description', label: '描述' }
+      ],
+      rows: filteredLogs.value.map(log => ({ ...log }))
+    }
+  ]
+})
+
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

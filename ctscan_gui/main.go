@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -18,16 +19,19 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+var startupLogPath string
+
 func main() {
 	logFile := setupLogOutput()
 	if logFile != nil {
 		defer logFile.Close()
 	}
+	defer recoverStartupPanic()
 
 	// 创建一个 App 实例
 	app, err := pkg.NewApp()
 	if err != nil {
-		log.Fatalf("初始化应用失败: %v", err)
+		exitWithStartupError("初始化应用失败", err)
 	}
 
 	// 使用配置创建应用
@@ -49,8 +53,22 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatalf("运行应用失败: %v", err)
+		exitWithStartupError("运行应用失败", err)
 	}
+}
+
+func recoverStartupPanic() {
+	if value := recover(); value != nil {
+		err := fmt.Errorf("%v", value)
+		exitWithStartupError("CTScan 启动异常", err)
+	}
+}
+
+func exitWithStartupError(stage string, err error) {
+	message := fmt.Sprintf("%s: %v", stage, err)
+	log.Print(message)
+	showStartupError("CTScan 启动失败", fmt.Sprintf("%s\n\n日志文件: %s", message, startupLogLocation()))
+	os.Exit(1)
 }
 
 func setupLogOutput() *os.File {
@@ -66,12 +84,20 @@ func setupLogOutput() *os.File {
 	}
 
 	logPath := filepath.Join(logDir, "ctscan.log")
+	startupLogPath = logPath
 	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return nil
 	}
 	log.SetOutput(io.MultiWriter(os.Stderr, file))
 	return file
+}
+
+func startupLogLocation() string {
+	if startupLogPath != "" {
+		return startupLogPath
+	}
+	return filepath.Join(os.TempDir(), "CTScan", "logs", "ctscan.log")
 }
 
 func windowsOptions() *windows.Options {

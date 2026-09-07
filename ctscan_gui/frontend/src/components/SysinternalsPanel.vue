@@ -9,17 +9,34 @@ import {
   OpenSysinternalsToolsFolder
 } from '../../wailsjs/go/pkg/App'
 import { pkg } from '../../wailsjs/go/models'
+import type { LogSnapshot } from '../utils/logExport'
 
 const tools = ref<pkg.SysinternalsTool[]>([])
 const loading = ref(false)
 const activeToolId = ref('')
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  if (error && typeof error === 'object') {
+    const value = error as Record<string, unknown>
+    if (typeof value.message === 'string' && value.message.trim()) return value.message
+    if (typeof value.error === 'string' && value.error.trim()) return value.error
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return fallback
+    }
+  }
+  return fallback
+}
 
 const refresh = async () => {
   loading.value = true
   try {
     tools.value = await GetSysinternalsTools()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '获取微软工具状态失败')
+    ElMessage.error(getErrorMessage(error, '获取微软工具状态失败'))
   } finally {
     loading.value = false
   }
@@ -32,7 +49,7 @@ const runToolTask = async (tool: pkg.SysinternalsTool, task: () => Promise<void>
     ElMessage.success(successMessage)
     await refresh()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '操作失败')
+    ElMessage.error(getErrorMessage(error, '操作失败'))
   } finally {
     activeToolId.value = ''
   }
@@ -52,13 +69,45 @@ const openToolsFolder = async () => {
   try {
     await OpenSysinternalsToolsFolder()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '打开工具目录失败')
+    ElMessage.error(getErrorMessage(error, '打开工具目录失败'))
   }
 }
 
 onMounted(refresh)
 
-defineExpose({ refresh })
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '微软排查工具',
+  description: 'CTScan 封装的微软官方排查工具状态。',
+  sections: [
+    {
+      title: '工具状态',
+      columns: [
+        { key: 'name', label: '工具名' },
+        { key: 'file_name', label: '文件名' },
+        { key: 'best_for', label: '用途' },
+        { key: 'available', label: '释放状态' },
+        { key: 'packaged', label: '封装状态' },
+        { key: 'supported', label: '当前平台支持' },
+        { key: 'requires_admin', label: '权限' },
+        { key: 'local_path', label: '本地路径' },
+        { key: 'description', label: '描述' }
+      ],
+      rows: tools.value.map(tool => ({
+        name: tool.name,
+        file_name: tool.file_name,
+        best_for: tool.best_for,
+        available: tool.available ? '已释放' : '未释放',
+        packaged: tool.packaged ? '已封装' : '未封装',
+        supported: tool.supported ? '支持' : '不支持',
+        requires_admin: tool.requires_admin ? '管理员权限启动' : '普通权限启动',
+        local_path: tool.local_path,
+        description: tool.description
+      }))
+    }
+  ]
+})
+
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

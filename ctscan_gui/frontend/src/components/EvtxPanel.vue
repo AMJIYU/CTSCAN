@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { Search, Key, Warning, Connection, RefreshLeft } from '@element-plus/icons-vue'
 import { ParseEVTXFile } from '../../wailsjs/go/pkg/App'
 import { pkg } from '../../wailsjs/go/models'
+import type { LogSnapshot } from '../utils/logExport'
 
 // 定义组件事件
 const emit = defineEmits(['update:events'])
@@ -297,6 +298,26 @@ const clearColumnFilters = () => {
   })
 }
 
+const getQuickFilterLabel = () => {
+  switch (quickFilter.value) {
+    case 'login-success':
+      return '登录成功'
+    case 'rdp-login':
+      return 'RDP登录'
+    case 'login-failed':
+      return '登录失败'
+    default:
+      return '全部'
+  }
+}
+
+const getColumnFilterSnapshot = () => {
+  return columnFilterDefinitions.reduce<Record<string, string>>((result, definition) => {
+    result[definition.label] = columnFilters[definition.key]
+    return result
+  }, {})
+}
+
 // 获取登入类型描述
 const getLogonTypeDescription = (event: pkg.EVTXEvent | null) => {
   if (!isLoginEvent(event)) return ''
@@ -325,6 +346,59 @@ const handleRowClick = (row: pkg.EVTXEvent) => {
   dialogVisible.value = true
 }
 
+const getLogSnapshot = (): LogSnapshot => ({
+  title: 'EVTX日志',
+  description: 'EVTX 事件日志查询结果，导出当前搜索、快速筛选和列筛选后的全部事件。',
+  filters: {
+    搜索关键字: searchQuery.value,
+    快速筛选: getQuickFilterLabel(),
+    ...getColumnFilterSnapshot()
+  },
+  sections: [
+    {
+      title: 'EVTX事件',
+      columns: [
+        { key: 'time', label: '时间' },
+        { key: 'time_utc', label: 'UTC时间' },
+        { key: 'time_local', label: '本机时间' },
+        { key: 'event_id', label: '事件ID' },
+        { key: 'event_record_id', label: '事件记录ID' },
+        { key: 'event_type', label: '事件类型' },
+        { key: 'logon_type', label: '登录类型' },
+        { key: 'source_ip', label: '源IP' },
+        { key: 'username', label: '用户名' },
+        { key: 'workstation', label: '工作站' },
+        { key: 'subject_username', label: '主体用户名' },
+        { key: 'subject_domain', label: '主体域' },
+        { key: 'process', label: '进程' },
+        { key: 'provider', label: '提供者' },
+        { key: 'level', label: '级别' },
+        { key: 'computer', label: '计算机' },
+        { key: 'description', label: '描述' }
+      ],
+      rows: filteredEvents.value.map(event => ({
+        time: event.time,
+        time_utc: event.time_utc,
+        time_local: event.time_local,
+        event_id: event.event_id,
+        event_record_id: event.event_record_id,
+        event_type: getEventTypeLabel(event),
+        logon_type: getLogonTypeDisplay(event),
+        source_ip: getEventDataValue(event, 'IpAddress'),
+        username: getEventDataValue(event, 'TargetUserName'),
+        workstation: getEventDataValue(event, 'WorkstationName'),
+        subject_username: getEventDataValue(event, 'SubjectUserName'),
+        subject_domain: getEventDataValue(event, 'SubjectDomainName'),
+        process: getEventDataValue(event, 'LogonProcessName'),
+        provider: event.provider,
+        level: event.level,
+        computer: event.computer,
+        description: event.description
+      }))
+    }
+  ]
+})
+
 // 暴露方法给父组件
 defineExpose({
   parseEvtxFile,
@@ -333,7 +407,8 @@ defineExpose({
   },
   refresh: () => {
     return Promise.resolve()
-  }
+  },
+  getLogSnapshot
 })
 </script>
 

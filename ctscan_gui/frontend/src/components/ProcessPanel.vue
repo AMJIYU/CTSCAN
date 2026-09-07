@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { GetAllProcesses, SaveProcessInfo } from '../../wailsjs/go/pkg/App'
 import { Monitor, Document, Connection, Timer, Key } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface ProcessInfo {
   pid: number
@@ -181,7 +182,50 @@ onMounted(() => {
   refresh()
 })
 
-defineExpose({ refresh, forceRefresh })
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '进程排查',
+  description: '进程列表查询结果，包含当前筛选条件和排序后的全部结果。',
+  filters: {
+    ...filters.value,
+    sortProp: sortProp.value,
+    sortOrder: sortOrder.value
+  },
+  sections: [
+    {
+      title: '进程列表',
+      columns: [
+        { key: 'pid', label: 'PID' },
+        { key: 'name', label: '进程名' },
+        { key: 'ppid', label: 'PPID' },
+        { key: 'parent_name', label: '父进程' },
+        { key: 'create_time', label: '启动时间' },
+        { key: 'exe', label: '路径' },
+        { key: 'file_ctime', label: '文件创建时间' },
+        { key: 'file_mtime', label: '文件修改时间' },
+        { key: 'md5', label: 'MD5' },
+        { key: 'signature', label: '签名' },
+        { key: 'cpu_percent', label: 'CPU' },
+        { key: 'mem_percent', label: '内存' }
+      ],
+      rows: sortedProcesses.value.map(process => ({
+        pid: process.pid,
+        name: process.name,
+        ppid: process.ppid,
+        parent_name: process.parent_name,
+        create_time: formatTimestamp(process.create_time),
+        exe: process.exe,
+        file_ctime: formatTimestamp(process.file_ctime),
+        file_mtime: formatTimestamp(process.file_mtime),
+        md5: process.md5,
+        signature: process.signature,
+        cpu_percent: `${process.cpu_percent?.toFixed?.(2) || process.cpu_percent}%`,
+        mem_percent: `${process.mem_percent?.toFixed?.(2) || process.mem_percent}%`
+      }))
+    }
+  ]
+})
+
+defineExpose({ refresh, forceRefresh, getLogSnapshot })
 </script>
 
 <template>

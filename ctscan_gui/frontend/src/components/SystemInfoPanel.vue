@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { GetSystemInfo, SaveSystemInfo } from '../../wailsjs/go/pkg/App'
 import { Monitor, Cpu, Memo, Folder } from '@element-plus/icons-vue'
+import { formatBytes } from '../utils/logExport'
+import type { LogSnapshot } from '../utils/logExport'
 
 interface DiskInfo {
   mount_point: string
@@ -57,8 +59,45 @@ onMounted(() => {
   refresh()
 })
 
+const getLogSnapshot = (): LogSnapshot => ({
+  title: '系统基本信息',
+  description: '当前系统基础信息与磁盘使用情况快照。',
+  sections: [
+    {
+      title: '系统基本信息',
+      items: [
+        { label: '主机名', value: systemInfo.value.hostname },
+        { label: '操作系统', value: systemInfo.value.os },
+        { label: '架构', value: systemInfo.value.arch },
+        { label: 'CPU核心数', value: systemInfo.value.cpu_cores },
+        { label: '内核版本', value: systemInfo.value.kernel_version },
+        { label: 'CPU使用率', value: `${systemInfo.value.cpu_usage?.toFixed?.(1) || systemInfo.value.cpu_usage}%` },
+        { label: '总内存', value: formatBytes(systemInfo.value.total_memory) },
+        { label: '内存使用率', value: `${systemInfo.value.memory_usage?.toFixed?.(1) || systemInfo.value.memory_usage}%` }
+      ]
+    },
+    {
+      title: '磁盘信息',
+      columns: [
+        { key: 'mount_point', label: '挂载点' },
+        { key: 'total_size', label: '总大小' },
+        { key: 'used_size', label: '已用大小' },
+        { key: 'free_size', label: '可用大小' },
+        { key: 'usage', label: '使用率' }
+      ],
+      rows: systemInfo.value.disks.map(disk => ({
+        mount_point: disk.mount_point,
+        total_size: formatBytes(disk.total_size),
+        used_size: formatBytes(disk.used_size),
+        free_size: formatBytes(disk.free_size),
+        usage: `${disk.usage?.toFixed?.(1) || disk.usage}%`
+      }))
+    }
+  ]
+})
+
 // 暴露 refresh 方法，供父组件调用
-defineExpose({ refresh })
+defineExpose({ refresh, getLogSnapshot })
 </script>
 
 <template>

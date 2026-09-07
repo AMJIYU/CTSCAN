@@ -8,6 +8,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/shirou/gopsutil/v4 v4.25.5
 	github.com/wailsapp/wails/v2 v2.10.1
+	golang.org/x/sys v0.33.0
 )
 
 require github.com/pkg/errors v0.9.1 // indirect
@@ -42,7 +43,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 )
 
